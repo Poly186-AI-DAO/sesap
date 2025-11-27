@@ -32,7 +32,17 @@ const partySchema = z.object({
 });
 
 const formSchema = z.object({
-    type: z.enum(["collaboration", "service", "investment", "custom"]),
+    type: z.enum([
+        "collaboration",
+        "service",
+        "investment",
+        "custom",
+        "nda",
+        "nca",
+        "tos",
+        "constitution",
+        "declaration",
+    ]),
     description: z.string().min(10, "Description must be at least 10 characters"),
     parties: z.array(partySchema).min(1, "At least one party is required"),
 });
@@ -110,6 +120,11 @@ export function AgreementForm({ onSuccess, defaultWalletAddress }: AgreementForm
         { value: "collaboration", label: "Collaboration Agreement", description: "For projects with multiple collaborators" },
         { value: "service", label: "Service Agreement", description: "For service provider and client relationships" },
         { value: "investment", label: "Investment Agreement", description: "For investment terms (SAFE, SAFT, etc.)" },
+        { value: "nda", label: "Non-Disclosure Agreement", description: "Protect confidential information" },
+        { value: "nca", label: "Non-Compete Agreement", description: "Restrict competitive activities" },
+        { value: "tos", label: "Terms of Service", description: "Define service usage terms and conditions" },
+        { value: "constitution", label: "Constitution", description: "Governance rules for DAOs and organizations" },
+        { value: "declaration", label: "Declaration", description: "Manifestos, charters, and founding documents" },
         { value: "custom", label: "Custom Agreement", description: "Freeform custom agreement" },
     ];
 
@@ -128,8 +143,8 @@ export function AgreementForm({ onSuccess, defaultWalletAddress }: AgreementForm
                                     <Card
                                         key={type.value}
                                         className={`cursor-pointer transition-all ${field.value === type.value
-                                                ? "border-primary ring-2 ring-primary/20"
-                                                : "hover:border-muted-foreground/50"
+                                            ? "border-primary ring-2 ring-primary/20"
+                                            : "hover:border-muted-foreground/50"
                                             }`}
                                         onClick={() => field.onChange(type.value)}
                                     >

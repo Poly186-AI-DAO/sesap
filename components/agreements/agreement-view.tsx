@@ -39,13 +39,21 @@ export function AgreementView({
     const totalParties = agreement.parties.length;
     const signedCount = agreement.parties.filter((p) => p.signature).length;
 
-    // Status badge color
+    // Status badge color (handle both uppercase DB enum and lowercase)
     const statusColors: Record<string, string> = {
         draft: "bg-yellow-100 text-yellow-800",
+        DRAFT: "bg-yellow-100 text-yellow-800",
         pending: "bg-blue-100 text-blue-800",
+        PENDING_SIGNATURES: "bg-blue-100 text-blue-800",
         active: "bg-green-100 text-green-800",
+        ACTIVE: "bg-green-100 text-green-800",
+        executed: "bg-gray-100 text-gray-800",
+        EXECUTED: "bg-gray-100 text-gray-800",
         completed: "bg-gray-100 text-gray-800",
+        expired: "bg-orange-100 text-orange-800",
+        EXPIRED: "bg-orange-100 text-orange-800",
         cancelled: "bg-red-100 text-red-800",
+        CANCELLED: "bg-red-100 text-red-800",
     };
 
     async function handleSign() {
@@ -86,15 +94,16 @@ export function AgreementView({
             {/* Header */}
             <div className="flex items-start justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold capitalize">
-                        {agreement.type.replace(/-/g, " ")} Agreement
+                    <h1 className="text-2xl font-bold">
+                        {agreement.title || `${(agreement.templateId || "custom").replace(/-/g, " ")} Agreement`}
                     </h1>
                     <p className="text-sm text-muted-foreground">
+                        {agreement.templateId && <span className="capitalize">{agreement.templateId} • </span>}
                         Created {new Date(agreement.createdAt).toLocaleDateString()}
                     </p>
                 </div>
-                <span className={`rounded-full px-3 py-1 text-sm font-medium ${statusColors[agreement.status] || statusColors.draft}`}>
-                    {agreement.status}
+                <span className={`rounded-full px-3 py-1 text-sm font-medium ${statusColors[agreement.status] || statusColors.draft || statusColors.DRAFT}`}>
+                    {agreement.status.replace("_", " ")}
                 </span>
             </div>
 

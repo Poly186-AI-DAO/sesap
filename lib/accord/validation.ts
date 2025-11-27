@@ -143,11 +143,210 @@ concept CustomAgreement extends Agreement {
 }
 `;
 
+// Non-Disclosure Agreement (NDA) model
+const NDA_MODEL = `
+namespace org.sesap.nda@1.0.0
+
+import org.sesap.base@1.0.0.{Party, Agreement}
+
+enum NDAType {
+  o UNILATERAL
+  o BILATERAL
+  o MULTILATERAL
+}
+
+enum ConfidentialityLevel {
+  o CONFIDENTIAL
+  o HIGHLY_CONFIDENTIAL
+  o TOP_SECRET
+}
+
+concept ConfidentialInformation {
+  o String category
+  o String description
+  o ConfidentialityLevel level default="CONFIDENTIAL"
+}
+
+concept NDAgreement extends Agreement {
+  o NDAType ndaType default="BILATERAL"
+  o Party disclosingParty
+  o Party receivingParty
+  o ConfidentialInformation[] confidentialInfo optional
+  o String purposeOfDisclosure
+  o Integer confidentialityPeriodMonths default=24
+  o String[] excludedInformation optional
+  o String returnOrDestroyTerms optional
+  o String breachRemedies optional
+  o String governingLaw optional
+  o String jurisdictionVenue optional
+}
+`;
+
+// Non-Compete Agreement (NCA) model
+const NCA_MODEL = `
+namespace org.sesap.nca@1.0.0
+
+import org.sesap.base@1.0.0.{Party, Agreement}
+
+concept GeographicScope {
+  o String region
+  o String description optional
+}
+
+concept RestrictedActivity {
+  o String activity
+  o String description optional
+}
+
+concept NCAgreement extends Agreement {
+  o Party employer
+  o Party employee
+  o RestrictedActivity[] restrictedActivities
+  o GeographicScope[] geographicScope
+  o Integer nonCompetePeriodMonths default=12
+  o Double compensationAmount optional
+  o String currency default="USD"
+  o String[] competitors optional
+  o String considerationProvided
+  o String enforceabilityClause optional
+  o String governingLaw optional
+}
+`;
+
+// Terms of Service (ToS) model
+const TOS_MODEL = `
+namespace org.sesap.tos@1.0.0
+
+import org.sesap.base@1.0.0.{Party, Agreement}
+
+concept ServiceTerm {
+  o String title
+  o String content
+  o Integer order default=0
+  o Boolean required default=true
+}
+
+concept TOSAgreement extends Agreement {
+  o String serviceName
+  o String serviceDescription
+  o Party serviceProvider
+  o ServiceTerm[] terms
+  o String[] acceptableUsePolicies optional
+  o String[] prohibitedActivities optional
+  o String limitationOfLiability optional
+  o String indemnificationClause optional
+  o String terminationConditions optional
+  o String modificationRights optional
+  o String disputeResolution optional
+  o String governingLaw optional
+  o String privacyPolicyReference optional
+  o String contactInformation optional
+}
+`;
+
+// Constitution model (for DAOs, organizations, communities)
+const CONSTITUTION_MODEL = `
+namespace org.sesap.constitution@1.0.0
+
+import org.sesap.base@1.0.0.{Party, Agreement}
+
+enum VotingMechanism {
+  o SIMPLE_MAJORITY
+  o SUPER_MAJORITY
+  o UNANIMOUS
+  o QUADRATIC
+  o TOKEN_WEIGHTED
+}
+
+concept Article {
+  o Integer articleNumber
+  o String title
+  o String content
+  o String[] sections optional
+}
+
+concept Amendment {
+  o Integer amendmentNumber
+  o String title
+  o String content
+  o DateTime ratifiedDate optional
+  o VotingMechanism requiredVotingMechanism default="SUPER_MAJORITY"
+}
+
+concept ConstitutionAgreement extends Agreement {
+  o String organizationName
+  o String organizationType
+  o String missionStatement
+  o String visionStatement optional
+  o Article[] articles
+  o Amendment[] amendments optional
+  o VotingMechanism defaultVotingMechanism default="SIMPLE_MAJORITY"
+  o Double quorumPercentage default=50.0
+  o String membershipCriteria optional
+  o String[] officerRoles optional
+  o String amendmentProcess optional
+  o String dissolutionProcess optional
+}
+`;
+
+// Declaration model (manifestos, declarations of independence, founding documents)
+const DECLARATION_MODEL = `
+namespace org.sesap.declaration@1.0.0
+
+import org.sesap.base@1.0.0.{Party, Agreement}
+
+enum DeclarationType {
+  o INDEPENDENCE
+  o PRINCIPLES
+  o MANIFESTO
+  o CHARTER
+  o PROCLAMATION
+}
+
+concept Principle {
+  o Integer order
+  o String title
+  o String statement
+  o String rationale optional
+}
+
+concept Grievance {
+  o Integer order
+  o String description
+  o String evidence optional
+}
+
+concept Commitment {
+  o Integer order
+  o String commitment
+  o String[] signatoryRoles optional
+}
+
+concept DeclarationAgreement extends Agreement {
+  o DeclarationType declarationType default="PRINCIPLES"
+  o String declarationName
+  o String preamble
+  o Principle[] principles optional
+  o Grievance[] grievances optional
+  o Commitment[] commitments optional
+  o String[] coreValues optional
+  o String callToAction optional
+  o String closingStatement optional
+  o Boolean requiresWitness default=false
+  o Party[] witnesses optional
+}
+`;
+
 export type AgreementType =
   | "collaboration"
   | "service"
   | "investment"
-  | "custom";
+  | "custom"
+  | "nda"
+  | "nca"
+  | "tos"
+  | "constitution"
+  | "declaration";
 
 /**
  * Get the Concerto model for a specific agreement type
@@ -158,6 +357,11 @@ export function getModelForType(type: AgreementType): string {
     service: SERVICE_MODEL,
     investment: INVESTMENT_MODEL,
     custom: CUSTOM_MODEL,
+    nda: NDA_MODEL,
+    nca: NCA_MODEL,
+    tos: TOS_MODEL,
+    constitution: CONSTITUTION_MODEL,
+    declaration: DECLARATION_MODEL,
   };
   return BASE_MODEL + "\n" + models[type];
 }
@@ -171,6 +375,11 @@ export function getClassNameForType(type: AgreementType): string {
     service: "org.sesap.service@1.0.0.ServiceAgreement",
     investment: "org.sesap.investment@1.0.0.InvestmentAgreement",
     custom: "org.sesap.custom@1.0.0.CustomAgreement",
+    nda: "org.sesap.nda@1.0.0.NDAgreement",
+    nca: "org.sesap.nca@1.0.0.NCAgreement",
+    tos: "org.sesap.tos@1.0.0.TOSAgreement",
+    constitution: "org.sesap.constitution@1.0.0.ConstitutionAgreement",
+    declaration: "org.sesap.declaration@1.0.0.DeclarationAgreement",
   };
   return classNames[type];
 }
@@ -190,6 +399,11 @@ export function createModelManager(type: AgreementType): ModelManager {
     service: { content: SERVICE_MODEL, name: "service.cto" },
     investment: { content: INVESTMENT_MODEL, name: "investment.cto" },
     custom: { content: CUSTOM_MODEL, name: "custom.cto" },
+    nda: { content: NDA_MODEL, name: "nda.cto" },
+    nca: { content: NCA_MODEL, name: "nca.cto" },
+    tos: { content: TOS_MODEL, name: "tos.cto" },
+    constitution: { content: CONSTITUTION_MODEL, name: "constitution.cto" },
+    declaration: { content: DECLARATION_MODEL, name: "declaration.cto" },
   };
 
   modelManager.addCTOModel(typeModels[type].content, typeModels[type].name);
@@ -316,6 +530,27 @@ export function getRequiredFields(type: AgreementType): string[] {
     ],
     investment: ["investor", "company", "investmentType", "investmentAmount"],
     custom: ["agreementType", "clauses"],
+    nda: [
+      "ndaType",
+      "disclosingParty",
+      "receivingParty",
+      "purposeOfDisclosure",
+    ],
+    nca: [
+      "employer",
+      "employee",
+      "restrictedActivities",
+      "geographicScope",
+      "considerationProvided",
+    ],
+    tos: ["serviceName", "serviceDescription", "serviceProvider", "terms"],
+    constitution: [
+      "organizationName",
+      "organizationType",
+      "missionStatement",
+      "articles",
+    ],
+    declaration: ["declarationType", "declarationName", "preamble"],
   };
 
   return [...baseFields, ...typeSpecificFields[type]];
@@ -393,6 +628,144 @@ export function getSampleData(type: AgreementType): Record<string, unknown> {
           order: 1,
         },
       ],
+    },
+    nda: {
+      ...baseData,
+      title: "Non-Disclosure Agreement",
+      ndaType: "BILATERAL",
+      disclosingParty: {
+        name: "Disclosing Party",
+        walletAddress: "0x0000000000000000000000000000000000000001",
+        role: "Disclosing Party",
+      },
+      receivingParty: {
+        name: "Receiving Party",
+        walletAddress: "0x0000000000000000000000000000000000000002",
+        role: "Receiving Party",
+      },
+      purposeOfDisclosure: "Business collaboration and evaluation",
+      confidentialityPeriodMonths: 24,
+      confidentialInfo: [
+        {
+          category: "Business Information",
+          description:
+            "Financial data, business strategies, and customer lists",
+          level: "CONFIDENTIAL",
+        },
+      ],
+    },
+    nca: {
+      ...baseData,
+      title: "Non-Compete Agreement",
+      employer: {
+        name: "Company Name",
+        walletAddress: "0x0000000000000000000000000000000000000001",
+        role: "Employer",
+      },
+      employee: {
+        name: "Employee Name",
+        walletAddress: "0x0000000000000000000000000000000000000002",
+        role: "Employee",
+      },
+      restrictedActivities: [
+        {
+          activity: "Competing business operation",
+          description: "Operating or being employed by a competing business",
+        },
+      ],
+      geographicScope: [
+        {
+          region: "United States",
+          description: "All 50 states and territories",
+        },
+      ],
+      nonCompetePeriodMonths: 12,
+      considerationProvided:
+        "Employment and compensation as outlined in employment agreement",
+    },
+    tos: {
+      ...baseData,
+      title: "Terms of Service",
+      serviceName: "Platform Name",
+      serviceDescription:
+        "A description of the platform or service being provided",
+      serviceProvider: {
+        name: "Service Provider",
+        walletAddress: "0x0000000000000000000000000000000000000001",
+        role: "Service Provider",
+      },
+      terms: [
+        {
+          title: "Acceptance of Terms",
+          content:
+            "By accessing or using this service, you agree to be bound by these terms.",
+          order: 1,
+          required: true,
+        },
+        {
+          title: "User Responsibilities",
+          content:
+            "Users must comply with all applicable laws and regulations.",
+          order: 2,
+          required: true,
+        },
+      ],
+      acceptableUsePolicies: [
+        "No illegal activities",
+        "No harassment or abuse",
+      ],
+      prohibitedActivities: [
+        "Hacking or unauthorized access",
+        "Distribution of malware",
+      ],
+    },
+    constitution: {
+      ...baseData,
+      title: "Organization Constitution",
+      organizationName: "Organization Name",
+      organizationType: "DAO",
+      missionStatement: "To advance the mission and goals of the organization",
+      visionStatement: "A vision for what the organization aims to achieve",
+      articles: [
+        {
+          articleNumber: 1,
+          title: "Name and Purpose",
+          content: "This organization shall be known as...",
+          sections: ["Section 1.1: Name", "Section 1.2: Purpose"],
+        },
+        {
+          articleNumber: 2,
+          title: "Membership",
+          content: "Membership criteria and rights...",
+          sections: [
+            "Section 2.1: Eligibility",
+            "Section 2.2: Rights and Duties",
+          ],
+        },
+      ],
+      defaultVotingMechanism: "SIMPLE_MAJORITY",
+      quorumPercentage: 50.0,
+      amendments: [],
+    },
+    declaration: {
+      ...baseData,
+      title: "Declaration of Principles",
+      declarationType: "PRINCIPLES",
+      declarationName: "Declaration Name",
+      preamble:
+        "We, the undersigned, hereby declare our commitment to the following principles...",
+      principles: [
+        {
+          order: 1,
+          title: "First Principle",
+          statement: "We believe in...",
+          rationale: "Because...",
+        },
+      ],
+      coreValues: ["Transparency", "Collaboration", "Innovation"],
+      callToAction:
+        "We call upon all stakeholders to join us in this endeavor.",
+      closingStatement: "In witness whereof, we have set our hands and seals.",
     },
   };
 

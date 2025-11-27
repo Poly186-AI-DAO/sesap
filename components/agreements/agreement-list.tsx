@@ -32,7 +32,7 @@ export function AgreementList({ walletAddress, onSelect }: AgreementListProps) {
                 const response = await fetch(`/api/agreements?walletAddress=${walletAddress}`);
                 if (response.ok) {
                     const data = await response.json();
-                    setAgreements(data);
+                    setAgreements(data.agreements || []);
                 }
             } catch (error) {
                 console.error("Failed to fetch agreements:", error);
@@ -44,18 +44,26 @@ export function AgreementList({ walletAddress, onSelect }: AgreementListProps) {
         fetchAgreements();
     }, [walletAddress]);
 
-    // Filter agreements
+    // Filter agreements (handle both uppercase DB enum and lowercase filter UI)
     const filteredAgreements = filter === "all"
         ? agreements
-        : agreements.filter((a) => a.status === filter);
+        : agreements.filter((a) => a.status.toLowerCase() === filter.toLowerCase());
 
-    // Status badge color
+    // Status badge color (handle both uppercase and lowercase)
     const statusColors: Record<string, string> = {
         draft: "bg-yellow-100 text-yellow-800",
+        DRAFT: "bg-yellow-100 text-yellow-800",
         pending: "bg-blue-100 text-blue-800",
+        PENDING_SIGNATURES: "bg-blue-100 text-blue-800",
         active: "bg-green-100 text-green-800",
+        ACTIVE: "bg-green-100 text-green-800",
+        executed: "bg-gray-100 text-gray-800",
+        EXECUTED: "bg-gray-100 text-gray-800",
         completed: "bg-gray-100 text-gray-800",
+        expired: "bg-orange-100 text-orange-800",
+        EXPIRED: "bg-orange-100 text-orange-800",
         cancelled: "bg-red-100 text-red-800",
+        CANCELLED: "bg-red-100 text-red-800",
     };
 
     // Type icons (text-based for simplicity)
@@ -134,14 +142,17 @@ export function AgreementList({ walletAddress, onSelect }: AgreementListProps) {
                                     <div className="flex items-start justify-between">
                                         <div>
                                             <CardTitle className="text-lg">
-                                                {typeLabels[agreement.type] || agreement.type}
+                                                {agreement.title || typeLabels[agreement.templateId || ""] || "Agreement"}
                                             </CardTitle>
                                             <CardDescription>
+                                                {typeLabels[agreement.templateId || ""] && (
+                                                    <span className="mr-2">{typeLabels[agreement.templateId || ""]}</span>
+                                                )}
                                                 Created {new Date(agreement.createdAt).toLocaleDateString()}
                                             </CardDescription>
                                         </div>
-                                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusColors[agreement.status] || statusColors.draft}`}>
-                                            {agreement.status}
+                                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusColors[agreement.status] || statusColors.draft || statusColors.DRAFT}`}>
+                                            {agreement.status.replace("_", " ")}
                                         </span>
                                     </div>
                                 </CardHeader>

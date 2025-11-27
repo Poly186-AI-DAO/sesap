@@ -7,13 +7,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AgreementForm } from "@/components/agreements/agreement-form";
 import { AgreementList } from "@/components/agreements/agreement-list";
 import { AgreementView } from "@/components/agreements/agreement-view";
+import { TranscriptAnalyzer } from "@/components/agreements/transcript-analyzer";
 import { useWalletAddress } from "@/lib/web3auth/hooks";
 import type { Agreement } from "@/types/agreement";
+
+type ViewMode = "list" | "transcript" | "agreement";
 
 export default function DashboardPage() {
     const { address } = useWalletAddress();
     const [selectedAgreement, setSelectedAgreement] = useState<Agreement | null>(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [viewMode, setViewMode] = useState<ViewMode>("list");
     const [stats, setStats] = useState({ total: 0, pending: 0, active: 0 });
     const [refreshKey, setRefreshKey] = useState(0);
 
@@ -25,11 +29,12 @@ export default function DashboardPage() {
             try {
                 const response = await fetch(`/api/agreements?walletAddress=${address}`);
                 if (response.ok) {
-                    const agreements: Agreement[] = await response.json();
+                    const data = await response.json();
+                    const agreements: Agreement[] = data.agreements || [];
                     setStats({
                         total: agreements.length,
-                        pending: agreements.filter((a) => a.status === "pending" || a.status === "draft").length,
-                        active: agreements.filter((a) => a.status === "active").length,
+                        pending: agreements.filter((a) => a.status === "pending" || a.status === "draft" || a.status === "DRAFT").length,
+                        active: agreements.filter((a) => a.status === "active" || a.status === "ACTIVE").length,
                     });
                 }
             } catch (error) {
@@ -42,11 +47,18 @@ export default function DashboardPage() {
 
     function handleAgreementCreated() {
         setIsCreateOpen(false);
+        setViewMode("list");
         setRefreshKey((k) => k + 1);
     }
 
     function handleAgreementSelect(agreement: Agreement) {
         setSelectedAgreement(agreement);
+        setViewMode("agreement");
+    }
+
+    function handleTranscriptAgreementCreated() {
+        setViewMode("list");
+        setRefreshKey((k) => k + 1);
     }
 
     return (
@@ -79,9 +91,29 @@ export default function DashboardPage() {
                 </Card>
             </div>
 
-            {/* Actions */}
-            <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Your Agreements</h2>
+            {/* View Mode Tabs */}
+            <div className="flex items-center gap-2 border-b pb-4">
+                <Button
+                    variant={viewMode === "list" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => {
+                        setViewMode("list");
+                        setSelectedAgreement(null);
+                    }}
+                >
+                    Agreements
+                </Button>
+                <Button
+                    variant={viewMode === "transcript" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => {
+                        setViewMode("transcript");
+                        setSelectedAgreement(null);
+                    }}
+                >
+                    Analyze Transcript
+                </Button>
+                <div className="flex-1" />
                 <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                     <DialogTrigger asChild>
                         <Button>Create Agreement</Button>
@@ -98,10 +130,20 @@ export default function DashboardPage() {
                 </Dialog>
             </div>
 
-            {/* Agreement List or View */}
-            {selectedAgreement ? (
+            {/* Content based on view mode */}
+            {viewMode === "transcript" && (
+                <TranscriptAnalyzer
+                    defaultWalletAddress={address || undefined}
+                    onAgreementCreated={handleTranscriptAgreementCreated}
+                />
+            )}
+
+            {viewMode === "agreement" && selectedAgreement && (
                 <div className="space-y-4">
-                    <Button variant="outline" onClick={() => setSelectedAgreement(null)}>
+                    <Button variant="outline" onClick={() => {
+                        setSelectedAgreement(null);
+                        setViewMode("list");
+                    }}>
                         ← Back to List
                     </Button>
                     <AgreementView
@@ -110,7 +152,9 @@ export default function DashboardPage() {
                         onRefresh={() => setRefreshKey((k) => k + 1)}
                     />
                 </div>
-            ) : (
+            )}
+
+            {viewMode === "list" && (
                 <AgreementList
                     key={refreshKey}
                     walletAddress={address || undefined}

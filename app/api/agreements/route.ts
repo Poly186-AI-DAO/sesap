@@ -12,7 +12,17 @@ import { z } from "zod";
 
 // Request validation schema
 const createAgreementSchema = z.object({
-  type: z.enum(["collaboration", "service", "investment", "custom"]),
+  type: z.enum([
+    "collaboration",
+    "service",
+    "investment",
+    "custom",
+    "nda",
+    "nca",
+    "tos",
+    "constitution",
+    "declaration",
+  ]),
   description: z.string().min(10, "Description must be at least 10 characters"),
   parties: z
     .array(
