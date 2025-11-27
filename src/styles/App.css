@@ -1,0 +1,15 @@
+.app-layout {
+  @apply flex flex-row;
+}
+
+.app-content-loading {
+  @apply flex justify-center items-center min-h-[calc(100vh-64px)];
+}
+
+.app-main-content {
+  @apply h-full;
+}
+
+.app-spinner-container {
+  @apply flex-1 flex justify-center items-center;
+}
