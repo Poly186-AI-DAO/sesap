@@ -1,84 +1,126 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { Web3Auth } from "@web3auth/modal";
-import { web3AuthConfig } from "./config";
+import { ReactNode, createContext, useContext, useCallback } from "react";
+import {
+    Web3AuthProvider as Web3AuthProviderBase,
+    useWeb3Auth as useWeb3AuthBase,
+    useWeb3AuthConnect,
+    useWeb3AuthDisconnect,
+    useWeb3AuthUser,
+    type Web3AuthContextConfig,
+} from "@web3auth/modal/react";
+import { WEB3AUTH_NETWORK, type IWeb3AuthState } from "@web3auth/modal";
+import { useAccount, useSignMessage as useWagmiSignMessage } from "wagmi";
+import { WagmiProvider } from "@web3auth/modal/react/wagmi";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const clientId = process.env.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID!;
+
+// Web3Auth v10 config - chainConfig is now managed via dashboard
+const web3AuthContextConfig: Web3AuthContextConfig = {
+    web3AuthOptions: {
+        clientId,
+        web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
+        uiConfig: {
+            appName: "SESAP",
+            mode: "light",
+            defaultLanguage: "en",
+        },
+        ssr: true,
+    },
+};
+
+const queryClient = new QueryClient();
+
+// Custom context to provide a unified API for the rest of the app
+export interface Web3AuthUser {
+    email?: string;
+    name?: string;
+    profileImage?: string;
+    verifier?: string;
+    verifierId?: string;
+    aggregateVerifier?: string;
+    typeOfLogin?: string;
+}
 
 interface Web3AuthContextType {
-    web3auth: Web3Auth | null;
-    provider: any;
-    user: any;
+    user: Web3AuthUser | null;
     isLoading: boolean;
     isConnected: boolean;
+    isInitialized: boolean;
     login: () => Promise<void>;
     logout: () => Promise<void>;
     getAddress: () => Promise<string | null>;
+    signMessage: (message: string) => Promise<string | null>;
 }
 
 const Web3AuthContext = createContext<Web3AuthContextType | null>(null);
 
-export function Web3AuthProvider({ children }: { children: ReactNode }) {
-    const [web3auth, setWeb3auth] = useState<Web3Auth | null>(null);
-    const [provider, setProvider] = useState<any>(null);
-    const [user, setUser] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(true);
+// Inner provider that uses the hooks
+function Web3AuthInnerProvider({ children }: { children: ReactNode }) {
+    const { connect, isConnected, loading: connectLoading } = useWeb3AuthConnect();
+    const { disconnect, loading: disconnectLoading } = useWeb3AuthDisconnect();
+    const { userInfo } = useWeb3AuthUser();
+    const { address } = useAccount();
+    const { signMessageAsync } = useWagmiSignMessage();
+    const { isInitialized } = useWeb3AuthBase();
 
-    useEffect(() => {
-        const init = async () => {
-            // Mock init
-            setIsLoading(false);
-        };
+    const login = useCallback(async () => {
+        await connect();
+    }, [connect]);
 
-        init();
-    }, []);
+    const logout = useCallback(async () => {
+        await disconnect();
+    }, [disconnect]);
 
-    const login = async () => {
-        // Mock login for testing
-        setProvider({ isMock: true });
-        setUser({
-            name: "Test User",
-            email: "test@example.com",
-            profileImage: "https://github.com/shadcn.png"
-        });
-        /*
-        if (!web3auth) return;
-        const web3authProvider = await web3auth.connect();
-        setProvider(web3authProvider);
-        const userInfo = await web3auth.getUserInfo();
-        setUser(userInfo);
-        */
-    };
+    const getAddress = useCallback(async (): Promise<string | null> => {
+        return address ?? null;
+    }, [address]);
 
-    const logout = async () => {
-        if (!web3auth) return;
-        await web3auth.logout();
-        setProvider(null);
-        setUser(null);
-    };
-
-    const getAddress = async (): Promise<string | null> => {
-        if (!provider) return null;
-        const { ethers } = await import("ethers");
-        const ethersProvider = new ethers.BrowserProvider(provider);
-        const signer = await ethersProvider.getSigner();
-        return signer.getAddress();
-    };
+    const signMessage = useCallback(async (message: string): Promise<string | null> => {
+        if (!isConnected) return null;
+        try {
+            const signature = await signMessageAsync({ message });
+            return signature;
+        } catch (error) {
+            console.error("Sign message error:", error);
+            return null;
+        }
+    }, [isConnected, signMessageAsync]);
 
     return (
         <Web3AuthContext.Provider
             value={{
-                web3auth,
-                provider,
-                user,
-                isLoading,
-                isConnected: !!provider,
+                user: userInfo ?? null,
+                isLoading: connectLoading || disconnectLoading,
+                isConnected,
+                isInitialized,
                 login,
                 logout,
                 getAddress,
+                signMessage,
             }}
         >
             {children}
         </Web3AuthContext.Provider>
+    );
+}
+
+// Main provider that wraps Web3AuthProviderBase and wagmi
+interface Web3AuthProviderProps {
+    children: ReactNode;
+    web3authInitialState?: IWeb3AuthState;
+}
+
+export function Web3AuthProvider({ children, web3authInitialState }: Web3AuthProviderProps) {
+    return (
+        <Web3AuthProviderBase config={web3AuthContextConfig} initialState={web3authInitialState}>
+            <QueryClientProvider client={queryClient}>
+                <WagmiProvider>
+                    <Web3AuthInnerProvider>{children}</Web3AuthInnerProvider>
+                </WagmiProvider>
+            </QueryClientProvider>
+        </Web3AuthProviderBase>
     );
 }
 
@@ -89,3 +131,6 @@ export const useWeb3Auth = () => {
     }
     return context;
 };
+
+// Re-export the Web3Auth hooks for direct usage if needed
+export { useWeb3AuthConnect, useWeb3AuthDisconnect, useWeb3AuthUser };

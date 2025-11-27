@@ -1,0 +1,99 @@
+namespace org.sesap.service
+
+import org.accordproject.runtime.*
+import org.accordproject.time.*
+import org.accordproject.money.*
+
+/**
+ * Service provider information
+ */
+concept ServiceProvider {
+  o String name
+  o String walletAddress
+  o String email optional
+  o String description optional
+}
+
+/**
+ * Client information
+ */
+concept Client {
+  o String name
+  o String walletAddress
+  o String email optional
+}
+
+/**
+ * Deliverable in the service agreement
+ */
+concept Deliverable {
+  o String name
+  o String description
+  o DateTime dueDate
+  o Double amount
+  o String currency default="USD"
+  o Boolean delivered default=false
+  o Boolean paid default=false
+}
+
+/**
+ * Payment terms
+ */
+enum PaymentSchedule {
+  o UPFRONT
+  o MILESTONE
+  o COMPLETION
+  o MONTHLY
+}
+
+/**
+ * The service agreement contract data
+ */
+asset ServiceAgreement extends Contract {
+  o String serviceName
+  o String serviceDescription
+  o ServiceProvider provider
+  o Client client
+  o DateTime effectiveDate
+  o DateTime completionDate
+  o Deliverable[] deliverables
+  o PaymentSchedule paymentSchedule
+  o Double totalAmount
+  o String currency default="USD"
+  o Double depositAmount optional
+  o String termsAndConditions optional
+  o String cancellationPolicy optional
+  o Integer revisionLimit optional
+}
+
+/**
+ * Request to mark deliverable as complete
+ */
+transaction DeliverableComplete extends Request {
+  o String deliverableName
+}
+
+/**
+ * Response confirming deliverable completion
+ */
+transaction DeliverableResponse extends Response {
+  o String message
+  o Double amountDue
+}
+
+/**
+ * Request payment for deliverable
+ */
+transaction PaymentRequest extends Request {
+  o String deliverableName
+  o Double amount
+}
+
+/**
+ * Payment confirmation
+ */
+transaction PaymentResponse extends Response {
+  o String message
+  o Double amountPaid
+  o Double remainingBalance
+}

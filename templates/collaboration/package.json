@@ -1,0 +1,20 @@
+{
+  "name": "collaboration-agreement",
+  "displayName": "Collaboration Agreement",
+  "version": "1.0.0",
+  "description": "A Smart Social Contract template for collaboration agreements between parties working on a shared project.",
+  "author": "SESAP",
+  "license": "Apache-2.0",
+  "accordproject": {
+    "template": "clause",
+    "cicero": "^0.24.0",
+    "runtime": "es6"
+  },
+  "keywords": [
+    "collaboration",
+    "partnership",
+    "project",
+    "ssc",
+    "sesap"
+  ]
+}
