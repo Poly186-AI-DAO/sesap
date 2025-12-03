@@ -1,0 +1,12 @@
+namespace org.accordproject.acceptance
+
+import org.accordproject.contract.*
+import org.accordproject.runtime.*
+
+contract Acceptance over AcceptanceClause {
+  clause acceptance(request : AcceptanceRequest) : AcceptanceResponse {
+    return AcceptanceResponse{
+      message: "Delivery accepted by " ++ contract.receiver ++ " from " ++ contract.sender
+    }
+  }
+}

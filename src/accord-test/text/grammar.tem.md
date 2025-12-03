@@ -1,0 +1,1 @@
+{{receiver}} accepts {{sender}}

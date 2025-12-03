@@ -1,0 +1,16 @@
+namespace org.accordproject.acceptance
+
+import org.accordproject.contract.*
+import org.accordproject.runtime.*
+
+transaction AcceptanceRequest extends Request {
+}
+
+transaction AcceptanceResponse extends Response {
+  o String message
+}
+
+asset AcceptanceClause extends Clause {
+  o String receiver
+  o String sender
+}

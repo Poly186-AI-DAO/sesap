@@ -1,33 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link
-      rel="icon"
-      type="image"
-      href="https://i0.wp.com/accordproject.org/wp-content/uploads/2020/08/cropped-ms-icon-310x310-1.png?fit=512%2C512&ssl=1"
-    />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
-    <meta property="og:title" content="Template Playground" />
-    <meta property="og:description" content="Template Playground" />
-    <meta
-      property="og:image"
-      content="https://i0.wp.com/accordproject.org/wp-content/uploads/2020/08/cropped-ms-icon-310x310-1.png?fit=512%2C512&ssl=1"
-    />
-    <meta property="og:url" content="https://playground.accordproject.org/" />
-    <title>Template Playground</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Rubik:wght@300..900&display=swap"
-      rel="stylesheet"
-    />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image"
+    href="https://i0.wp.com/accordproject.org/wp-content/uploads/2020/08/cropped-ms-icon-310x310-1.png?fit=512%2C512&ssl=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta property="og:title" content="SESAP Template Playground" />
+  <meta property="og:description" content="SESAP Smart Social Contract Template Playground" />
+  <meta property="og:image"
+    content="https://i0.wp.com/accordproject.org/wp-content/uploads/2020/08/cropped-ms-icon-310x310-1.png?fit=512%2C512&ssl=1" />
+  <meta property="og:url" content="https://playground.accordproject.org/" />
+  <title>SESAP Template Playground</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300..900&display=swap" rel="stylesheet" />
+</head>
+
+<body>
+  <div id="root"></div>
+  <div id="error-overlay"
+    style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,0,0,0.1); pointer-events: none; z-index: 9999; display: none; color: red; padding: 20px; white-space: pre-wrap; font-family: monospace; overflow: auto;">
+  </div>
+  <script>
+    window.onerror = function (msg, url, line, col, error) {
+      var overlay = document.getElementById('error-overlay');
+      overlay.style.display = 'block';
+      overlay.style.background = 'white';
+      overlay.innerText += 'Error: ' + msg + '\n' + url + ':' + line + ':' + col + '\n' + (error ? error.stack : '') + '\n\n';
+      console.error("Global Error:", msg, error);
+    };
+    window.onunhandledrejection = function (e) {
+      var overlay = document.getElementById('error-overlay');
+      overlay.style.display = 'block';
+      overlay.style.background = 'white';
+      overlay.innerText += 'Unhandled Rejection: ' + (e.reason ? (e.reason.stack || e.reason) : e) + '\n\n';
+      console.error("Unhandled Rejection:", e.reason);
+    };
+    console.log("[DEBUG] Error handler injected");
+  </script>
+  <script>
+    window.global = window;
+    window.process = {
+      env: { DEBUG: undefined },
+      version: '',
+      nextTick: function (cb) { setTimeout(cb, 0); },
+      browser: true,
+    };
+  </script>
+  <script>console.log("[DEBUG] index.html script running");</script>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

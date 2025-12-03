@@ -67,9 +67,17 @@ export interface DecompressedData {
 const rebuildDeBounce = debounce(rebuild, 500);
 
 async function rebuild(template: string, model: string, dataString: string) {
+  console.log("[DEBUG] rebuild started");
   const modelManager = new ModelManager({ strict: true });
+  console.log("[DEBUG] modelManager created");
   modelManager.addCTOModel(model, undefined, true);
-  await modelManager.updateExternalModels();
+  console.log("[DEBUG] CTO model added");
+  try {
+    // await modelManager.updateExternalModels();
+    console.log("[DEBUG] External models updated (SKIPPED)");
+  } catch (e) {
+    console.error("[DEBUG] Failed to update external models", e);
+  }
   const engine = new TemplateMarkInterpreter(modelManager, {});
   const templateMarkTransformer = new TemplateMarkTransformer();
   const templateMarkDom = templateMarkTransformer.fromMarkdownTemplate(
@@ -78,8 +86,10 @@ async function rebuild(template: string, model: string, dataString: string) {
     "contract",
     { verbose: false }
   );
+  console.log("[DEBUG] Template parsed");
   const data = JSON.parse(dataString);
   const ciceroMark = await engine.generate(templateMarkDom, data);
+  console.log("[DEBUG] CiceroMark generated");
   return await transform(
     ciceroMark.toJSON(),
     "ciceromark_parsed",

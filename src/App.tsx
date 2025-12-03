@@ -37,20 +37,25 @@ const App = () => {
 
   useEffect(() => {
     const initializeApp = async () => {
+      console.log("[DEBUG] initializeApp started");
       try {
         setLoading(true);
         const compressedData = searchParams.get("data");
         if (compressedData) {
+          console.log("[DEBUG] loading from link");
           await loadFromLink(compressedData);
           if (window.location.pathname !== "/") {
             navigate("/", { replace: true });
           }
         } else {
+          console.log("[DEBUG] calling init()");
           await init();
+          console.log("[DEBUG] init() completed");
         }
       } catch (error) {
         console.error("Initialization error:", error);
       } finally {
+        console.log("[DEBUG] setLoading(false)");
         setLoading(false);
       }
     };
