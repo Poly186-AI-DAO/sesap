@@ -18,7 +18,7 @@
   "dependencies": {
     "@accordproject/cicero-core": "^0.24.0",
     "@accordproject/cicero-engine": "^0.24.0",
-    "@accordproject/concerto-core": "^3.11.1",
+    "@accordproject/concerto-core": "^3.20.4",
     "@accordproject/ergo-compiler": "^0.24.0",
     "@accordproject/markdown-common": "^0.16.19",
     "@accordproject/markdown-template": "^0.16.19",
@@ -105,5 +105,8 @@
     "last 2 versions",
     "not ie <= 11",
     "Safari >= 10"
-  ]
+  ],
+  "overrides": {
+    "@accordproject/concerto-core": "^3.20.4"
+  }
 }

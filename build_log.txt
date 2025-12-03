@@ -1,0 +1,310 @@
+
+> template_playground@0.0.0 build
+> tsc && cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+vite v4.5.14 building for production...
+transforming...
+node_modules/antd/es/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/index.js" was ignored.
+(node:65680) Warning: Failed to load the ES module: /Users/princeps/Projects/Poly186/sesap/tailwind.config.js. Make sure to set "type": "module" in the nearest package.json file or use the .mjs extension.
+(Use `node --trace-warnings ...` to show where the warning was created)
+node_modules/antd/es/alert/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/alert/index.js" was ignored.
+node_modules/antd/es/anchor/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/anchor/index.js" was ignored.
+node_modules/antd/es/avatar/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/avatar/index.js" was ignored.
+node_modules/antd/es/affix/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/affix/index.js" was ignored.
+node_modules/antd/es/auto-complete/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/auto-complete/index.js" was ignored.
+node_modules/antd/es/back-top/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/back-top/index.js" was ignored.
+node_modules/antd/es/badge/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/badge/index.js" was ignored.
+node_modules/antd/es/app/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/app/index.js" was ignored.
+node_modules/antd/es/calendar/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/calendar/index.js" was ignored.
+node_modules/antd/es/breadcrumb/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/breadcrumb/index.js" was ignored.
+node_modules/antd/es/button/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/button/index.js" was ignored.
+node_modules/antd/es/card/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/card/index.js" was ignored.
+node_modules/antd/es/cascader/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/cascader/index.js" was ignored.
+node_modules/antd/es/carousel/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/carousel/index.js" was ignored.
+node_modules/antd/es/checkbox/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/checkbox/index.js" was ignored.
+node_modules/antd/es/collapse/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/collapse/index.js" was ignored.
+node_modules/antd/es/col/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/col/index.js" was ignored.
+node_modules/antd/es/config-provider/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/config-provider/index.js" was ignored.
+node_modules/antd/es/color-picker/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/color-picker/index.js" was ignored.
+node_modules/antd/es/date-picker/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/date-picker/index.js" was ignored.
+node_modules/antd/es/dropdown/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/dropdown/index.js" was ignored.
+node_modules/antd/es/divider/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/divider/index.js" was ignored.
+node_modules/antd/es/drawer/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/drawer/index.js" was ignored.
+node_modules/antd/es/descriptions/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/descriptions/index.js" was ignored.
+node_modules/antd/es/float-button/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/float-button/index.js" was ignored.
+node_modules/antd/es/empty/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/empty/index.js" was ignored.
+node_modules/antd/es/grid/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/grid/index.js" was ignored.
+node_modules/antd/es/form/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/form/index.js" was ignored.
+node_modules/antd/es/flex/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/flex/index.js" was ignored.
+node_modules/antd/es/image/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/image/index.js" was ignored.
+node_modules/antd/es/input/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/input/index.js" was ignored.
+node_modules/antd/es/input-number/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/input-number/index.js" was ignored.
+node_modules/antd/es/layout/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/layout/index.js" was ignored.
+node_modules/antd/es/mentions/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/mentions/index.js" was ignored.
+node_modules/antd/es/list/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/list/index.js" was ignored.
+node_modules/antd/es/menu/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/menu/index.js" was ignored.
+node_modules/antd/es/modal/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/modal/index.js" was ignored.
+node_modules/antd/es/message/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/message/index.js" was ignored.
+node_modules/antd/es/notification/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/notification/index.js" was ignored.
+node_modules/antd/es/pagination/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/pagination/index.js" was ignored.
+node_modules/antd/es/popconfirm/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/popconfirm/index.js" was ignored.
+node_modules/antd/es/progress/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/progress/index.js" was ignored.
+node_modules/antd/es/popover/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/popover/index.js" was ignored.
+node_modules/antd/es/radio/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/radio/index.js" was ignored.
+node_modules/antd/es/qr-code/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/qr-code/index.js" was ignored.
+node_modules/antd/es/rate/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/rate/index.js" was ignored.
+node_modules/antd/es/segmented/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/segmented/index.js" was ignored.
+node_modules/antd/es/result/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/result/index.js" was ignored.
+node_modules/antd/es/row/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/row/index.js" was ignored.
+node_modules/antd/es/skeleton/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/skeleton/index.js" was ignored.
+node_modules/antd/es/space/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/space/index.js" was ignored.
+node_modules/antd/es/select/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/select/index.js" was ignored.
+node_modules/antd/es/spin/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/spin/index.js" was ignored.
+node_modules/antd/es/steps/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/steps/index.js" was ignored.
+node_modules/antd/es/splitter/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/splitter/index.js" was ignored.
+node_modules/antd/es/statistic/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/statistic/index.js" was ignored.
+node_modules/antd/es/slider/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/slider/index.js" was ignored.
+node_modules/antd/es/switch/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/switch/index.js" was ignored.
+node_modules/antd/es/table/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/table/index.js" was ignored.
+node_modules/antd/es/tabs/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/tabs/index.js" was ignored.
+node_modules/antd/es/tag/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/tag/index.js" was ignored.
+node_modules/antd/es/theme/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/theme/index.js" was ignored.
+node_modules/antd/es/timeline/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/timeline/index.js" was ignored.
+node_modules/antd/es/time-picker/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/time-picker/index.js" was ignored.
+node_modules/antd/es/tooltip/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/tooltip/index.js" was ignored.
+node_modules/antd/es/tree/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/tree/index.js" was ignored.
+node_modules/antd/es/tour/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/tour/index.js" was ignored.
+node_modules/antd/es/typography/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/typography/index.js" was ignored.
+node_modules/antd/es/tree-select/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/tree-select/index.js" was ignored.
+node_modules/antd/es/transfer/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/transfer/index.js" was ignored.
+node_modules/antd/es/version/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/version/index.js" was ignored.
+node_modules/antd/es/watermark/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/watermark/index.js" was ignored.
+node_modules/antd/es/upload/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/upload/index.js" was ignored.
+node_modules/antd/es/config-provider/UnstableContext.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/config-provider/UnstableContext.js" was ignored.
+node_modules/antd/es/alert/Alert.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/alert/Alert.js" was ignored.
+node_modules/antd/es/alert/ErrorBoundary.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/alert/ErrorBoundary.js" was ignored.
+node_modules/antd/es/anchor/Anchor.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/anchor/Anchor.js" was ignored.
+node_modules/antd/es/anchor/AnchorLink.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/anchor/AnchorLink.js" was ignored.
+node_modules/antd/es/avatar/AvatarGroup.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/avatar/AvatarGroup.js" was ignored.
+node_modules/antd/es/avatar/Avatar.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/avatar/Avatar.js" was ignored.
+node_modules/antd/es/_util/PurePanel.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/_util/PurePanel.js" was ignored.
+node_modules/antd/es/auto-complete/AutoComplete.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/auto-complete/AutoComplete.js" was ignored.
+node_modules/antd/es/badge/ScrollNumber.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/badge/ScrollNumber.js" was ignored.
+node_modules/antd/es/badge/Ribbon.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/badge/Ribbon.js" was ignored.
+node_modules/antd/es/app/App.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/app/App.js" was ignored.
+node_modules/antd/es/breadcrumb/Breadcrumb.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/breadcrumb/Breadcrumb.js" was ignored.
+node_modules/antd/es/calendar/generateCalendar.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/calendar/generateCalendar.js" was ignored.
+node_modules/antd/es/button/button.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/button/button.js" was ignored.
+node_modules/antd/es/button/buttonHelpers.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/button/buttonHelpers.js" was ignored.
+node_modules/antd/es/card/Card.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/card/Card.js" was ignored.
+node_modules/antd/es/card/Meta.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/card/Meta.js" was ignored.
+node_modules/antd/es/card/Grid.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/card/Grid.js" was ignored.
+node_modules/antd/es/config-provider/defaultRenderEmpty.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/config-provider/defaultRenderEmpty.js" was ignored.
+node_modules/antd/es/config-provider/DisabledContext.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/config-provider/DisabledContext.js" was ignored.
+node_modules/antd/es/form/context.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/form/context.js" was ignored.
+node_modules/antd/es/select/usePopupRender.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/select/usePopupRender.js" was ignored.
+node_modules/antd/es/select/useIcons.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/select/useIcons.js" was ignored.
+node_modules/antd/es/space/Compact.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/space/Compact.js" was ignored.
+node_modules/antd/es/cascader/hooks/useCheckable.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/cascader/hooks/useCheckable.js" was ignored.
+node_modules/antd/es/cascader/hooks/useColumnIcons.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/cascader/hooks/useColumnIcons.js" was ignored.
+node_modules/antd/es/cascader/Panel.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/cascader/Panel.js" was ignored.
+node_modules/antd/es/checkbox/Group.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/checkbox/Group.js" was ignored.
+node_modules/antd/es/checkbox/Checkbox.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/checkbox/Checkbox.js" was ignored.
+node_modules/antd/es/collapse/Collapse.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/collapse/Collapse.js" was ignored.
+node_modules/antd/es/form/validateMessagesContext.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/form/validateMessagesContext.js" was ignored.
+node_modules/antd/es/locale/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/locale/index.js" was ignored.
+node_modules/antd/es/config-provider/MotionWrapper.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/config-provider/MotionWrapper.js" was ignored.
+node_modules/antd/es/config-provider/PropWarning.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/config-provider/PropWarning.js" was ignored.
+node_modules/antd/es/config-provider/SizeContext.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/config-provider/SizeContext.js" was ignored.
+node_modules/antd/es/color-picker/ColorPicker.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/color-picker/ColorPicker.js" was ignored.
+node_modules/antd/es/date-picker/generatePicker/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/date-picker/generatePicker/index.js" was ignored.
+node_modules/antd/es/dropdown/dropdown.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/dropdown/dropdown.js" was ignored.
+node_modules/antd/es/dropdown/dropdown-button.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/dropdown/dropdown-button.js" was ignored.
+node_modules/antd/es/_util/ContextIsolator.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/_util/ContextIsolator.js" was ignored.
+node_modules/antd/es/drawer/DrawerPanel.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/drawer/DrawerPanel.js" was ignored.
+node_modules/antd/es/grid/hooks/useBreakpoint.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/grid/hooks/useBreakpoint.js" was ignored.
+node_modules/antd/es/descriptions/Row.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/descriptions/Row.js" was ignored.
+node_modules/antd/es/float-button/BackTop.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/float-button/BackTop.js" was ignored.
+node_modules/antd/es/float-button/FloatButton.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/float-button/FloatButton.js" was ignored.
+node_modules/antd/es/float-button/FloatButtonGroup.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/float-button/FloatButtonGroup.js" was ignored.
+node_modules/antd/es/float-button/PurePanel.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/float-button/PurePanel.js" was ignored.
+node_modules/antd/es/empty/empty.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/empty/empty.js" was ignored.
+node_modules/antd/es/empty/simple.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/empty/simple.js" was ignored.
+node_modules/antd/es/grid/col.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/grid/col.js" was ignored.
+node_modules/antd/es/form/ErrorList.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/form/ErrorList.js" was ignored.
+node_modules/antd/es/grid/row.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/grid/row.js" was ignored.
+node_modules/antd/es/form/Form.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/form/Form.js" was ignored.
+node_modules/antd/es/form/FormItem/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/form/FormItem/index.js" was ignored.
+node_modules/antd/es/form/FormList.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/form/FormList.js" was ignored.
+node_modules/antd/es/input/Group.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/input/Group.js" was ignored.
+node_modules/antd/es/image/PreviewGroup.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/image/PreviewGroup.js" was ignored.
+node_modules/antd/es/input/OTP/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/input/OTP/index.js" was ignored.
+node_modules/antd/es/input/Password.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/input/Password.js" was ignored.
+node_modules/antd/es/input/Input.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/input/Input.js" was ignored.
+node_modules/antd/es/input/Search.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/input/Search.js" was ignored.
+node_modules/antd/es/input/TextArea.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/input/TextArea.js" was ignored.
+node_modules/antd/es/layout/layout.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/layout/layout.js" was ignored.
+node_modules/antd/es/layout/Sider.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/layout/Sider.js" was ignored.
+node_modules/antd/es/_util/getAllowClear.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/_util/getAllowClear.js" was ignored.
+node_modules/antd/es/list/Item.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/list/Item.js" was ignored.
+node_modules/antd/es/menu/menu.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/menu/menu.js" was ignored.
+node_modules/antd/es/menu/MenuDivider.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/menu/MenuDivider.js" was ignored.
+node_modules/antd/es/menu/MenuItem.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/menu/MenuItem.js" was ignored.
+node_modules/antd/es/menu/SubMenu.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/menu/SubMenu.js" was ignored.
+node_modules/antd/es/modal/Modal.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/modal/Modal.js" was ignored.
+node_modules/antd/es/modal/PurePanel.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/modal/PurePanel.js" was ignored.
+node_modules/antd/es/modal/confirm.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/modal/confirm.js" was ignored.
+node_modules/antd/es/modal/useModal/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/modal/useModal/index.js" was ignored.
+node_modules/antd/es/message/PurePanel.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/message/PurePanel.js" was ignored.
+node_modules/antd/es/message/useMessage.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/message/useMessage.js" was ignored.
+node_modules/antd/es/notification/PurePanel.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/notification/PurePanel.js" was ignored.
+node_modules/antd/es/notification/useNotification.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/notification/useNotification.js" was ignored.
+node_modules/antd/es/pagination/Pagination.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/pagination/Pagination.js" was ignored.
+node_modules/antd/es/popconfirm/PurePanel.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/popconfirm/PurePanel.js" was ignored.
+node_modules/antd/es/progress/progress.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/progress/progress.js" was ignored.
+node_modules/antd/es/popover/PurePanel.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/popover/PurePanel.js" was ignored.
+node_modules/antd/es/radio/group.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/radio/group.js" was ignored.
+node_modules/antd/es/radio/radio.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/radio/radio.js" was ignored.
+node_modules/antd/es/radio/radioButton.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/radio/radioButton.js" was ignored.
+node_modules/antd/es/qr-code/QrcodeStatus.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/qr-code/QrcodeStatus.js" was ignored.
+node_modules/antd/es/result/noFound.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/result/noFound.js" was ignored.
+node_modules/antd/es/result/serverError.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/result/serverError.js" was ignored.
+node_modules/antd/es/result/unauthorized.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/result/unauthorized.js" was ignored.
+node_modules/antd/es/skeleton/Skeleton.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/skeleton/Skeleton.js" was ignored.
+node_modules/antd/es/space/Item.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/space/Item.js" was ignored.
+node_modules/antd/es/space/Addon.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/space/Addon.js" was ignored.
+node_modules/antd/es/spin/Indicator/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/spin/Indicator/index.js" was ignored.
+node_modules/antd/es/splitter/Splitter.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/splitter/Splitter.js" was ignored.
+node_modules/antd/es/splitter/Panel.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/splitter/Panel.js" was ignored.
+node_modules/antd/es/statistic/Countdown.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/statistic/Countdown.js" was ignored.
+node_modules/antd/es/statistic/Statistic.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/statistic/Statistic.js" was ignored.
+node_modules/antd/es/statistic/Timer.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/statistic/Timer.js" was ignored.
+node_modules/antd/es/slider/SliderTooltip.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/slider/SliderTooltip.js" was ignored.
+node_modules/antd/es/table/Table.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/table/Table.js" was ignored.
+node_modules/antd/es/tag/CheckableTag.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/tag/CheckableTag.js" was ignored.
+node_modules/antd/es/timeline/Timeline.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/timeline/Timeline.js" was ignored.
+node_modules/antd/es/tooltip/PurePanel.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/tooltip/PurePanel.js" was ignored.
+node_modules/antd/es/tree/DirectoryTree.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/tree/DirectoryTree.js" was ignored.
+node_modules/antd/es/tree/Tree.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/tree/Tree.js" was ignored.
+node_modules/antd/es/tour/panelRender.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/tour/panelRender.js" was ignored.
+node_modules/antd/es/tour/PurePanel.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/tour/PurePanel.js" was ignored.
+node_modules/antd/es/typography/Link.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/typography/Link.js" was ignored.
+node_modules/antd/es/typography/Paragraph.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/typography/Paragraph.js" was ignored.
+node_modules/antd/es/typography/Typography.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/typography/Typography.js" was ignored.
+node_modules/antd/es/typography/Text.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/typography/Text.js" was ignored.
+node_modules/antd/es/typography/Title.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/typography/Title.js" was ignored.
+node_modules/antd/es/tree/utils/iconUtil.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/tree/utils/iconUtil.js" was ignored.
+node_modules/antd/es/transfer/list.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/transfer/list.js" was ignored.
+node_modules/antd/es/transfer/operation.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/transfer/operation.js" was ignored.
+node_modules/antd/es/transfer/search.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/transfer/search.js" was ignored.
+node_modules/antd/es/upload/Upload.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/upload/Upload.js" was ignored.
+node_modules/antd/es/upload/Dragger.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/upload/Dragger.js" was ignored.
+node_modules/@ant-design/icons/es/components/AntdIcon.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/@ant-design/icons/es/components/AntdIcon.js" was ignored.
+node_modules/antd/es/style/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/style/index.js" was ignored.
+node_modules/antd/es/badge/SingleNumber.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/badge/SingleNumber.js" was ignored.
+node_modules/antd/es/breadcrumb/BreadcrumbItem.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/breadcrumb/BreadcrumbItem.js" was ignored.
+node_modules/antd/es/breadcrumb/BreadcrumbSeparator.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/breadcrumb/BreadcrumbSeparator.js" was ignored.
+node_modules/antd/es/breadcrumb/useItemRender.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/breadcrumb/useItemRender.js" was ignored.
+node_modules/antd/es/calendar/Header.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/calendar/Header.js" was ignored.
+node_modules/antd/es/button/button-group.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/button/button-group.js" was ignored.
+node_modules/antd/es/button/DefaultLoadingIcon.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/button/DefaultLoadingIcon.js" was ignored.
+node_modules/antd/es/button/IconWrapper.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/button/IconWrapper.js" was ignored.
+node_modules/antd/es/_util/hooks/useClosable.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/_util/hooks/useClosable.js" was ignored.
+node_modules/antd/es/collapse/CollapsePanel.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/collapse/CollapsePanel.js" was ignored.
+node_modules/antd/es/color-picker/components/ColorTrigger.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/color-picker/components/ColorTrigger.js" was ignored.
+node_modules/antd/es/color-picker/ColorPickerPanel.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/color-picker/ColorPickerPanel.js" was ignored.
+node_modules/antd/es/date-picker/generatePicker/generateRangePicker.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/date-picker/generatePicker/generateRangePicker.js" was ignored.
+node_modules/antd/es/date-picker/generatePicker/generateSinglePicker.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/date-picker/generatePicker/generateSinglePicker.js" was ignored.
+node_modules/antd/es/menu/OverrideContext.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/menu/OverrideContext.js" was ignored.
+node_modules/antd/es/descriptions/Cell.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/descriptions/Cell.js" was ignored.
+node_modules/antd/es/float-button/FloatButtonContent.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/float-button/FloatButtonContent.js" was ignored.
+node_modules/antd/es/form/FormItem/StatusProvider.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/form/FormItem/StatusProvider.js" was ignored.
+node_modules/antd/es/form/FormItem/ItemHolder.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/form/FormItem/ItemHolder.js" was ignored.
+node_modules/antd/es/input/OTP/OTPInput.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/input/OTP/OTPInput.js" was ignored.
+node_modules/antd/es/menu/MenuContext.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/menu/MenuContext.js" was ignored.
+node_modules/antd/es/modal/shared.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/modal/shared.js" was ignored.
+node_modules/antd/es/modal/ConfirmDialog.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/modal/ConfirmDialog.js" was ignored.
+node_modules/antd/es/modal/useModal/HookModal.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/modal/useModal/HookModal.js" was ignored.
+node_modules/antd/es/_util/ActionButton.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/_util/ActionButton.js" was ignored.
+node_modules/antd/es/progress/Circle.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/progress/Circle.js" was ignored.
+node_modules/antd/es/progress/Line.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/progress/Line.js" was ignored.
+node_modules/antd/es/progress/Steps.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/progress/Steps.js" was ignored.
+node_modules/antd/es/skeleton/Avatar.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/skeleton/Avatar.js" was ignored.
+node_modules/antd/es/skeleton/Element.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/skeleton/Element.js" was ignored.
+node_modules/antd/es/skeleton/Button.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/skeleton/Button.js" was ignored.
+node_modules/antd/es/skeleton/Input.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/skeleton/Input.js" was ignored.
+node_modules/antd/es/skeleton/Image.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/skeleton/Image.js" was ignored.
+node_modules/antd/es/skeleton/Node.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/skeleton/Node.js" was ignored.
+node_modules/antd/es/skeleton/Paragraph.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/skeleton/Paragraph.js" was ignored.
+node_modules/antd/es/skeleton/Title.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/skeleton/Title.js" was ignored.
+node_modules/antd/es/spin/Indicator/Looper.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/spin/Indicator/Looper.js" was ignored.
+node_modules/antd/es/splitter/SplitBar.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/splitter/SplitBar.js" was ignored.
+node_modules/antd/es/statistic/Number.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/statistic/Number.js" was ignored.
+node_modules/antd/es/table/InternalTable.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/table/InternalTable.js" was ignored.
+node_modules/antd/es/table/hooks/useSelection.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/table/hooks/useSelection.js" was ignored.
+node_modules/antd/es/timeline/TimelineItem.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/timeline/TimelineItem.js" was ignored.
+node_modules/antd/es/timeline/TimelineItemList.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/timeline/TimelineItemList.js" was ignored.
+node_modules/antd/es/tree/utils/dropIndicator.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/tree/utils/dropIndicator.js" was ignored.
+node_modules/antd/es/typography/Base/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/typography/Base/index.js" was ignored.
+node_modules/antd/es/transfer/ListBody.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/transfer/ListBody.js" was ignored.
+node_modules/antd/es/upload/UploadList/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/upload/UploadList/index.js" was ignored.
+node_modules/antd/es/color-picker/components/ColorClear.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/color-picker/components/ColorClear.js" was ignored.
+node_modules/antd/es/color-picker/components/PanelPicker/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/color-picker/components/PanelPicker/index.js" was ignored.
+node_modules/antd/es/color-picker/components/PanelPresets.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/color-picker/components/PanelPresets.js" was ignored.
+node_modules/antd/es/date-picker/generatePicker/SuffixIcon.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/date-picker/generatePicker/SuffixIcon.js" was ignored.
+node_modules/antd/es/form/FormItemLabel.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/form/FormItemLabel.js" was ignored.
+node_modules/antd/es/form/FormItemInput.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/form/FormItemInput.js" was ignored.
+node_modules/antd/es/modal/components/NormalCancelBtn.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/modal/components/NormalCancelBtn.js" was ignored.
+node_modules/antd/es/modal/components/NormalOkBtn.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/modal/components/NormalOkBtn.js" was ignored.
+node_modules/antd/es/modal/components/ConfirmCancelBtn.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/modal/components/ConfirmCancelBtn.js" was ignored.
+node_modules/antd/es/modal/components/ConfirmOkBtn.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/modal/components/ConfirmOkBtn.js" was ignored.
+node_modules/antd/es/spin/Indicator/Progress.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/spin/Indicator/Progress.js" was ignored.
+node_modules/antd/es/_util/wave/WaveEffect.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/_util/wave/WaveEffect.js" was ignored.
+node_modules/antd/es/table/ExpandIcon.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/table/ExpandIcon.js" was ignored.
+node_modules/antd/es/table/hooks/useFilter/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/table/hooks/useFilter/index.js" was ignored.
+node_modules/antd/es/table/hooks/useSorter.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/table/hooks/useSorter.js" was ignored.
+node_modules/antd/es/table/RcTable/index.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/table/RcTable/index.js" was ignored.
+node_modules/antd/es/table/RcTable/VirtualTable.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/table/RcTable/VirtualTable.js" was ignored.
+node_modules/antd/es/typography/Editable.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/typography/Editable.js" was ignored.
+node_modules/antd/es/typography/Base/Ellipsis.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/typography/Base/Ellipsis.js" was ignored.
+node_modules/antd/es/typography/Base/CopyBtn.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/typography/Base/CopyBtn.js" was ignored.
+node_modules/antd/es/typography/Base/EllipsisTooltip.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/typography/Base/EllipsisTooltip.js" was ignored.
+node_modules/antd/es/transfer/ListItem.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/transfer/ListItem.js" was ignored.
+node_modules/antd/es/upload/UploadList/ListItem.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/upload/UploadList/ListItem.js" was ignored.
+node_modules/antd/es/color-picker/components/ColorPresets.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/color-picker/components/ColorPresets.js" was ignored.
+node_modules/antd/es/color-picker/components/ColorInput.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/color-picker/components/ColorInput.js" was ignored.
+node_modules/antd/es/color-picker/components/PanelPicker/GradientColorBar.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/color-picker/components/PanelPicker/GradientColorBar.js" was ignored.
+node_modules/antd/es/color-picker/components/ColorSlider.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/color-picker/components/ColorSlider.js" was ignored.
+node_modules/antd/es/date-picker/PickerButton.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/date-picker/PickerButton.js" was ignored.
+node_modules/antd/es/table/hooks/useFilter/FilterDropdown.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/table/hooks/useFilter/FilterDropdown.js" was ignored.
+node_modules/antd/es/color-picker/components/ColorHexInput.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/color-picker/components/ColorHexInput.js" was ignored.
+node_modules/antd/es/color-picker/components/ColorAlphaInput.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/color-picker/components/ColorAlphaInput.js" was ignored.
+node_modules/antd/es/color-picker/components/ColorRgbInput.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/color-picker/components/ColorRgbInput.js" was ignored.
+node_modules/antd/es/color-picker/components/ColorHsbInput.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/color-picker/components/ColorHsbInput.js" was ignored.
+node_modules/antd/es/table/hooks/useFilter/FilterSearch.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/table/hooks/useFilter/FilterSearch.js" was ignored.
+node_modules/antd/es/table/hooks/useFilter/FilterWrapper.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/table/hooks/useFilter/FilterWrapper.js" was ignored.
+node_modules/antd/es/color-picker/components/ColorSteppers.js (1:0) Module level directives cause errors when bundled, "use client" in "node_modules/antd/es/color-picker/components/ColorSteppers.js" was ignored.
+node_modules/lottie-web/build/player/lottie.js (14422:32) Use of eval in "node_modules/lottie-web/build/player/lottie.js" is strongly discouraged as it poses security risks and may cause issues with minification.
+node_modules/vm-browserify/index.js (110:11) Use of eval in "node_modules/vm-browserify/index.js" is strongly discouraged as it poses security risks and may cause issues with minification.
+node_modules/monaco-editor/esm/vs/base/common/marked/marked.js (1:9) Error when using sourcemap for reporting an error: Can't resolve original location of error.
+✓ 7799 modules transformed.
+✓ built in 39.90s
+"global" is not exported by "node_modules/node-stdlib-browser/helpers/esbuild/shim.js", imported by "node_modules/monaco-editor/esm/vs/base/common/marked/marked.js".
+file: /Users/princeps/Projects/Poly186/sesap/node_modules/monaco-editor/esm/vs/base/common/marked/marked.js:1:9
+1: import { global as global } from '/Users/princeps/Projects/Poly186/sesap/node_modules/node-stdlib-browser/helpers/esb...
+            ^
+2: 
+3: /**
+error during build:
+RollupError: "global" is not exported by "node_modules/node-stdlib-browser/helpers/esbuild/shim.js", imported by "node_modules/monaco-editor/esm/vs/base/common/marked/marked.js".
+    at error (file:///Users/princeps/Projects/Poly186/sesap/node_modules/rollup/dist/es/shared/node-entry.js:2287:30)
+    at Module.error (file:///Users/princeps/Projects/Poly186/sesap/node_modules/rollup/dist/es/shared/node-entry.js:13745:16)
+    at Module.traceVariable (file:///Users/princeps/Projects/Poly186/sesap/node_modules/rollup/dist/es/shared/node-entry.js:14175:29)
+    at ModuleScope.findVariable (file:///Users/princeps/Projects/Poly186/sesap/node_modules/rollup/dist/es/shared/node-entry.js:12615:39)
+    at FunctionScope.findVariable (file:///Users/princeps/Projects/Poly186/sesap/node_modules/rollup/dist/es/shared/node-entry.js:7124:38)
+    at ChildScope.findVariable (file:///Users/princeps/Projects/Poly186/sesap/node_modules/rollup/dist/es/shared/node-entry.js:7124:38)
+    at FunctionScope.findVariable (file:///Users/princeps/Projects/Poly186/sesap/node_modules/rollup/dist/es/shared/node-entry.js:7124:38)
+    at ChildScope.findVariable (file:///Users/princeps/Projects/Poly186/sesap/node_modules/rollup/dist/es/shared/node-entry.js:7124:38)
+    at Identifier.bind (file:///Users/princeps/Projects/Poly186/sesap/node_modules/rollup/dist/es/shared/node-entry.js:8319:40)
+    at AssignmentExpression.bind (file:///Users/princeps/Projects/Poly186/sesap/node_modules/rollup/dist/es/shared/node-entry.js:5892:23)

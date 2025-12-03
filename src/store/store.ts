@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
-import { debounce } from "ts-debounce";
+// import { debounce } from "ts-debounce";
 import { ModelManager } from "@accordproject/concerto-core";
 import { TemplateMarkInterpreter } from "@accordproject/template-engine";
 import { TemplateMarkTransformer } from "@accordproject/markdown-template";
@@ -64,6 +64,20 @@ export interface DecompressedData {
   agreementHtml: string;
 }
 
+function debounce<F extends (...args: any[]) => Promise<any>>(func: F, wait: number) {
+  let timeout: any;
+  return (...args: Parameters<F>): Promise<ReturnType<F> | undefined> => {
+    return new Promise((resolve, reject) => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      timeout = setTimeout(() => {
+        func(...args).then(resolve).catch(reject);
+      }, wait);
+    });
+  };
+}
+
 const rebuildDeBounce = debounce(rebuild, 500);
 
 async function rebuild(template: string, model: string, dataString: string) {
@@ -73,10 +87,202 @@ async function rebuild(template: string, model: string, dataString: string) {
   modelManager.addCTOModel(model, undefined, true);
   console.log("[DEBUG] CTO model added");
   try {
+    // Manually add the external model content to avoid network/loader issues
+    const moneyModel = `namespace org.accordproject.money@0.3.0
+    
+    enum CurrencyCode {
+      o AED
+      o AFN
+      o ALL
+      o AMD
+      o ANG
+      o AOA
+      o ARS
+      o AUD
+      o AWG
+      o AZN
+      o BAM
+      o BBD
+      o BDT
+      o BGN
+      o BHD
+      o BIF
+      o BMD
+      o BND
+      o BOB
+      o BOV
+      o BRL
+      o BSD
+      o BTN
+      o BWP
+      o BYN
+      o BZD
+      o CAD
+      o CDF
+      o CHE
+      o CHF
+      o CHW
+      o CLF
+      o CLP
+      o CNY
+      o COP
+      o COU
+      o CRC
+      o CUC
+      o CUP
+      o CVE
+      o CZK
+      o DJF
+      o DKK
+      o DOP
+      o DZD
+      o EGP
+      o ERN
+      o ETB
+      o EUR
+      o FJD
+      o FKP
+      o GBP
+      o GEL
+      o GHS
+      o GIP
+      o GMD
+      o GNF
+      o GTQ
+      o GYD
+      o HKD
+      o HNL
+      o HRK
+      o HTG
+      o HUF
+      o IDR
+      o ILS
+      o INR
+      o IQD
+      o IRR
+      o ISK
+      o JMD
+      o JOD
+      o JPY
+      o KES
+      o KGS
+      o KHR
+      o KMF
+      o KPW
+      o KRW
+      o KWD
+      o KYD
+      o KZT
+      o LAK
+      o LBP
+      o LKR
+      o LRD
+      o LSL
+      o LYD
+      o MAD
+      o MDL
+      o MGA
+      o MKD
+      o MMK
+      o MNT
+      o MOP
+      o MRU
+      o MUR
+      o MVR
+      o MWK
+      o MXN
+      o MXV
+      o MYR
+      o MZN
+      o NAD
+      o NGN
+      o NIO
+      o NOK
+      o NPR
+      o NZD
+      o OMR
+      o PAB
+      o PEN
+      o PGK
+      o PHP
+      o PKR
+      o PLN
+      o PYG
+      o QAR
+      o RON
+      o RSD
+      o RUB
+      o RWF
+      o SAR
+      o SBD
+      o SCR
+      o SDG
+      o SEK
+      o SGD
+      o SHP
+      o SLL
+      o SOS
+      o SRD
+      o SSP
+      o STN
+      o SVC
+      o SYP
+      o SZL
+      o THB
+      o TJS
+      o TMT
+      o TND
+      o TOP
+      o TRY
+      o TTD
+      o TWD
+      o TZS
+      o UAH
+      o UGX
+      o USD
+      o USN
+      o UYI
+      o UYU
+      o UZS
+      o VEF
+      o VND
+      o VUV
+      o WST
+      o XAF
+      o XAG
+      o XAU
+      o XBA
+      o XBB
+      o XBC
+      o XBD
+      o XCD
+      o XDR
+      o XOF
+      o XPD
+      o XPF
+      o XPT
+      o XSU
+      o XTS
+      o XUA
+      o XXX
+      o YER
+      o ZAR
+      o ZMW
+      o ZWL
+    }
+    
+    concept MonetaryAmount {
+      o Double doubleValue
+      o CurrencyCode currencyCode
+    }`;
+    
+    modelManager.addCTOModel(moneyModel, 'money@0.3.0.cto', true);
+    console.log("[DEBUG] Manual money model added");
+    
     // await modelManager.updateExternalModels();
-    console.log("[DEBUG] External models updated (SKIPPED)");
+    // console.log("[DEBUG] External models updated (SKIPPED)");
   } catch (e) {
-    console.error("[DEBUG] Failed to update external models", e);
+    console.error("[DEBUG] Failed to update external models", JSON.stringify(e, Object.getOwnPropertyNames(e)));
   }
   const engine = new TemplateMarkInterpreter(modelManager, {});
   const templateMarkTransformer = new TemplateMarkTransformer();
@@ -188,6 +394,11 @@ const useAppStore = create<AppState>()(
           const result = await rebuildDeBounce(templateMarkdown, modelCto, data);
           set(() => ({ agreementHtml: result, error: undefined })); // Clear error on success
         } catch (error: any) {
+          if (error?.type === 'cancelation') {
+            console.log("[DEBUG] Rebuild cancelled");
+            return;
+          }
+          console.error("[DEBUG] Rebuild error:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
           set(() => ({ error: formatError(error), isProblemPanelVisible: true }));
         }
       },
@@ -198,6 +409,10 @@ const useAppStore = create<AppState>()(
           const result = await rebuildDeBounce(template, modelCto, data);
           set(() => ({ agreementHtml: result, error: undefined })); // Clear error on success
         } catch (error: any) {
+          if (error?.type === 'cancelation') {
+            console.log("[DEBUG] Rebuild cancelled");
+            return;
+          }
           set(() => ({ error: formatError(error), isProblemPanelVisible: true }));
         }
       },
@@ -211,6 +426,10 @@ const useAppStore = create<AppState>()(
           const result = await rebuildDeBounce(templateMarkdown, model, data);
           set(() => ({ agreementHtml: result, error: undefined })); // Clear error on success
         } catch (error: any) {
+          if (error?.type === 'cancelation') {
+            console.log("[DEBUG] Rebuild cancelled");
+            return;
+          }
           set(() => ({ error: formatError(error), isProblemPanelVisible: true }));
         }
       },
@@ -227,6 +446,10 @@ const useAppStore = create<AppState>()(
           );
           set(() => ({ agreementHtml: result, error: undefined })); // Clear error on success
         } catch (error: any) {
+          if (error?.type === 'cancelation') {
+            console.log("[DEBUG] Rebuild cancelled");
+            return;
+          }
           set(() => ({ error: formatError(error), isProblemPanelVisible: true }));
         }
       },
