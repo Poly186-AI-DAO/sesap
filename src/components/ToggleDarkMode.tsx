@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { ToggleDarkModeContainer } from "../styles/components/ToggleDarkMode";
-import DarkModeToggle from "react-dark-mode-toggle";
+import { Switch } from "antd";
 import useAppStore from "../store/store";
 
 const ToggleDarkMode: React.FC = () => {
@@ -13,18 +13,16 @@ const ToggleDarkMode: React.FC = () => {
 
   const handleChange = () => {
     toggleDarkMode();
-    setIsDarkMode((prev) => !prev);
-    const newTheme = !isDarkMode ? "dark" : "light";
-    document.documentElement.setAttribute("data-theme", newTheme);
+    // state update is handled by useEffect listening to store
   };
 
   return (
     <ToggleDarkModeContainer>
-      <DarkModeToggle
-        className="dark-mode-toggle"
-        onChange={handleChange}
+      <Switch
         checked={isDarkMode}
-        size={60}
+        onChange={handleChange}
+        checkedChildren="🌙"
+        unCheckedChildren="☀️"
       />
     </ToggleDarkModeContainer>
   );

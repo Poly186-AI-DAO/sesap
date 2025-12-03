@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { App as AntdApp, Layout, Spin } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
 import { Routes, Route, useSearchParams, useNavigate } from "react-router-dom";
@@ -28,6 +28,7 @@ const App = () => {
   const textColor = useAppStore((state) => state.textColor);
   const [loading, setLoading] = useState(true);
   const [searchParams] = useSearchParams();
+  const initCalledRef = useRef(false);
 
 
   const handleConfigSave = () => {
@@ -36,6 +37,13 @@ const App = () => {
   };
 
   useEffect(() => {
+    // Guard against React StrictMode double-mount causing race conditions
+    if (initCalledRef.current) {
+      console.log("[DEBUG] initializeApp skipped (already called)");
+      return;
+    }
+    initCalledRef.current = true;
+
     const initializeApp = async () => {
       console.log("[DEBUG] initializeApp started");
       try {

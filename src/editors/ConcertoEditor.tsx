@@ -43,6 +43,16 @@ const concertoTypes = [
 ];
 
 const handleEditorWillMount = (monacoInstance: typeof monaco) => {
+  // Configure TypeScript/JavaScript to not load default libs (avoids 404s)
+  const compilerOptions = {
+    target: monacoInstance.languages.typescript.ScriptTarget.ES2015,
+    allowNonTsExtensions: true,
+    moduleResolution: monacoInstance.languages.typescript.ModuleResolutionKind.NodeJs,
+    noLib: true,
+  };
+  monacoInstance.languages.typescript.typescriptDefaults.setCompilerOptions(compilerOptions);
+  monacoInstance.languages.typescript.javascriptDefaults.setCompilerOptions(compilerOptions);
+
   monacoInstance.languages.register({
     id: "concerto",
     extensions: [".cto"],

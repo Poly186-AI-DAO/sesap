@@ -9,7 +9,7 @@ import { transform } from "@accordproject/markdown-transform";
 import { SAMPLES, Sample } from "../samples";
 import * as playground from "../samples/playground";
 import { compress, decompress } from "../utils/compression/compression";
-import { AIConfig, ChatState } from '../types/components/AIAssistant.types';
+import { AIConfig, ChatState } from "../types/components/AIAssistant.types";
 
 interface AppState {
   templateMarkdown: string;
@@ -64,15 +64,56 @@ export interface DecompressedData {
   agreementHtml: string;
 }
 
-function debounce<F extends (...args: any[]) => Promise<any>>(func: F, wait: number) {
-  let timeout: any;
-  return (...args: Parameters<F>): Promise<ReturnType<F> | undefined> => {
+interface CancelationResult {
+  type: "cancelation";
+  msg: string;
+}
+
+function isCancelation(result: unknown): result is CancelationResult {
+  return (
+    typeof result === "object" &&
+    result !== null &&
+    "type" in result &&
+    (result as any).type === "cancelation"
+  );
+}
+
+function debounce<F extends (...args: any[]) => Promise<any>>(
+  func: F,
+  wait: number
+) {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  let resolvePrevious: ((value: CancelationResult) => void) | null = null;
+
+  return (
+    ...args: Parameters<F>
+  ): Promise<ReturnType<F> | CancelationResult> => {
     return new Promise((resolve, reject) => {
       if (timeout) {
         clearTimeout(timeout);
+        if (resolvePrevious) {
+          // Resolve (not reject) with cancelation to prevent unhandled promise rejections
+          resolvePrevious({
+            type: "cancelation",
+            msg: "operation was debounced",
+          });
+          resolvePrevious = null;
+        }
       }
+      resolvePrevious = resolve as (value: CancelationResult) => void;
       timeout = setTimeout(() => {
-        func(...args).then(resolve).catch(reject);
+        func(...args)
+          .then(resolve)
+          .catch(reject)
+          .finally(() => {
+            if (
+              resolvePrevious ===
+              (resolve as (value: CancelationResult) => void)
+            ) {
+              resolvePrevious = null;
+            }
+            timeout = null;
+          });
       }, wait);
     });
   };
@@ -275,14 +316,17 @@ async function rebuild(template: string, model: string, dataString: string) {
       o Double doubleValue
       o CurrencyCode currencyCode
     }`;
-    
-    modelManager.addCTOModel(moneyModel, 'money@0.3.0.cto', true);
+
+    modelManager.addCTOModel(moneyModel, "money@0.3.0.cto", true);
     console.log("[DEBUG] Manual money model added");
-    
+
     // await modelManager.updateExternalModels();
     // console.log("[DEBUG] External models updated (SKIPPED)");
   } catch (e) {
-    console.error("[DEBUG] Failed to update external models", JSON.stringify(e, Object.getOwnPropertyNames(e)));
+    console.error(
+      "[DEBUG] Failed to update external models",
+      JSON.stringify(e, Object.getOwnPropertyNames(e))
+    );
   }
   const engine = new TemplateMarkInterpreter(modelManager, {});
   const templateMarkTransformer = new TemplateMarkTransformer();
@@ -306,16 +350,16 @@ async function rebuild(template: string, model: string, dataString: string) {
 }
 
 const getInitialTheme = () => {
-  if (typeof window !== 'undefined') {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      return { backgroundColor: '#121212', textColor: '#ffffff' };
-    } else if (savedTheme === 'light') {
-      return { backgroundColor: '#ffffff', textColor: '#121212' };
+  if (typeof window !== "undefined") {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      return { backgroundColor: "#121212", textColor: "#ffffff" };
+    } else if (savedTheme === "light") {
+      return { backgroundColor: "#ffffff", textColor: "#121212" };
     }
   }
   // Default to light theme
-  return { backgroundColor: '#ffffff', textColor: '#121212' };
+  return { backgroundColor: "#ffffff", textColor: "#121212" };
 };
 
 const useAppStore = create<AppState>()(
@@ -326,212 +370,238 @@ const useAppStore = create<AppState>()(
         backgroundColor: initialTheme.backgroundColor,
         textColor: initialTheme.textColor,
         sampleName: playground.NAME,
-      templateMarkdown: playground.TEMPLATE,
-      editorValue: playground.TEMPLATE,
-      modelCto: playground.MODEL,
-      editorModelCto: playground.MODEL,
-      data: JSON.stringify(playground.DATA, null, 2),
-      editorAgreementData: JSON.stringify(playground.DATA, null, 2),
-      agreementHtml: "",
-      isAIConfigOpen: false,
-      isAIChatOpen: false,
-      error: undefined,
-      samples: SAMPLES,
-      chatState: {
-        messages: [],
-        isLoading: false,
-        error: null,
-      },
-      aiConfig: null,
-      chatAbortController: null,
-      isEditorsVisible: true,
-      isPreviewVisible: true,
-      isProblemPanelVisible: false,
-      setEditorsVisible: (value) => {
-        const state = get();
-        if (!value && !state.isPreviewVisible) {
-          return;
-        }
-        set({ isEditorsVisible: value });
-      },
-      setPreviewVisible: (value) => {
-        const state = get();
-        if (!value && !state.isEditorsVisible) {
-          return;
-        }
-        set({ isPreviewVisible: value });
-      },
-      setProblemPanelVisible: (value) => set({ isProblemPanelVisible: value }),
-      init: async () => {
-        const params = new URLSearchParams(window.location.search);
-        const compressedData = params.get("data");
-        if (compressedData) {
-          await get().loadFromLink(compressedData);
-        } else {
-          await get().rebuild();
-        }
-      },
-      loadSample: async (name: string) => {
-        const sample = SAMPLES.find((s) => s.NAME === name);
-        if (sample) {
-          set(() => ({
-            sampleName: sample.NAME,
-            agreementHtml: undefined,
-            error: undefined,
-            templateMarkdown: sample.TEMPLATE,
-            editorValue: sample.TEMPLATE,
-            modelCto: sample.MODEL,
-            editorModelCto: sample.MODEL,
-            data: JSON.stringify(sample.DATA, null, 2),
-            editorAgreementData: JSON.stringify(sample.DATA, null, 2),
-          }));
-          await get().rebuild();
-        }
-      },
-      rebuild: async () => {
-        const { templateMarkdown, modelCto, data } = get();
-        try {
-          const result = await rebuildDeBounce(templateMarkdown, modelCto, data);
-          set(() => ({ agreementHtml: result, error: undefined })); // Clear error on success
-        } catch (error: any) {
-          if (error?.type === 'cancelation') {
-            console.log("[DEBUG] Rebuild cancelled");
-            return;
-          }
-          console.error("[DEBUG] Rebuild error:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
-          set(() => ({ error: formatError(error), isProblemPanelVisible: true }));
-        }
-      },
-      setTemplateMarkdown: async (template: string) => {
-        set(() => ({ templateMarkdown: template }));
-        const { modelCto, data } = get();
-        try {
-          const result = await rebuildDeBounce(template, modelCto, data);
-          set(() => ({ agreementHtml: result, error: undefined })); // Clear error on success
-        } catch (error: any) {
-          if (error?.type === 'cancelation') {
-            console.log("[DEBUG] Rebuild cancelled");
-            return;
-          }
-          set(() => ({ error: formatError(error), isProblemPanelVisible: true }));
-        }
-      },
-      setEditorValue: (value: string) => {
-        set(() => ({ editorValue: value }));
-      },
-      setModelCto: async (model: string) => {
-        set(() => ({ modelCto: model }));
-        const { templateMarkdown, data } = get();
-        try {
-          const result = await rebuildDeBounce(templateMarkdown, model, data);
-          set(() => ({ agreementHtml: result, error: undefined })); // Clear error on success
-        } catch (error: any) {
-          if (error?.type === 'cancelation') {
-            console.log("[DEBUG] Rebuild cancelled");
-            return;
-          }
-          set(() => ({ error: formatError(error), isProblemPanelVisible: true }));
-        }
-      },
-      setEditorModelCto: (value: string) => {
-        set(() => ({ editorModelCto: value }));
-      },
-      setData: async (data: string) => {
-        set(() => ({ data }));
-        try {
-          const result = await rebuildDeBounce(
-            get().templateMarkdown,
-            get().modelCto,
-            data
-          );
-          set(() => ({ agreementHtml: result, error: undefined })); // Clear error on success
-        } catch (error: any) {
-          if (error?.type === 'cancelation') {
-            console.log("[DEBUG] Rebuild cancelled");
-            return;
-          }
-          set(() => ({ error: formatError(error), isProblemPanelVisible: true }));
-        }
-      },
-      setEditorAgreementData: (value: string) => {
-        set(() => ({ editorAgreementData: value }));
-      },
-      generateShareableLink: () => {
-        const state = get();
-        const compressedData = compress({
-          templateMarkdown: state.templateMarkdown,
-          modelCto: state.modelCto,
-          data: state.data,
-          agreementHtml: state.agreementHtml,
-        });
-        return `${window.location.origin}?data=${compressedData}`;
-      },
-      loadFromLink: async (compressedData: string) => {
-        try {
-          const { templateMarkdown, modelCto, data, agreementHtml } = decompress(compressedData);
-          if (!templateMarkdown || !modelCto || !data) {
-            throw new Error("Invalid share link data");
-          }
-          set(() => ({
-            templateMarkdown,
-            editorValue: templateMarkdown,
-            modelCto,
-            editorModelCto: modelCto,
-            data,
-            editorAgreementData: data,
-            agreementHtml,
-            error: undefined,
-          }));
-          await get().rebuild();
-        } catch (error) {
-          set(() => ({
-            error: "Failed to load shared content: " + (error instanceof Error ? error.message : "Unknown error"),
-            isProblemPanelVisible: true,
-          }));
-        }
-      },
-      toggleDarkMode: () => {
-        set((state) => {
-          const isDark = state.backgroundColor === '#121212';
-          const newTheme = {
-            backgroundColor: isDark ? '#ffffff' : '#121212',
-            textColor: isDark ? '#121212' : '#ffffff',
-          };
-          
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('theme', isDark ? 'light' : 'dark');
-          }
-          
-          return newTheme;
-        });
-      },
-      setAIConfigOpen: (isOpen: boolean) => set(() => ({ isAIConfigOpen: isOpen })),
-      setAIChatOpen: (isOpen: boolean) => set(() => ({ isAIChatOpen: isOpen })),
-      setChatState: (state) => set({ chatState: state }),
-      updateChatState: (partial) => set((state) => ({ 
-        chatState: { ...state.chatState, ...partial } 
-      })),
-      setAIConfig: (config) => set({ aiConfig: config }),
-      setChatAbortController: (controller) => set({ chatAbortController: controller }),
-      resetChat: () => {
-        const { chatAbortController } = get();
-        if (chatAbortController) {
-          chatAbortController.abort();
-        }
-        get().setChatState({
+        templateMarkdown: playground.TEMPLATE,
+        editorValue: playground.TEMPLATE,
+        modelCto: playground.MODEL,
+        editorModelCto: playground.MODEL,
+        data: JSON.stringify(playground.DATA, null, 2),
+        editorAgreementData: JSON.stringify(playground.DATA, null, 2),
+        agreementHtml: "",
+        isAIConfigOpen: false,
+        isAIChatOpen: false,
+        error: undefined,
+        samples: SAMPLES,
+        chatState: {
           messages: [],
           isLoading: false,
           error: null,
-        });
-      },
-      startTour: () => {
-        console.log('Starting tour...');
-      },
-      }
+        },
+        aiConfig: null,
+        chatAbortController: null,
+        isEditorsVisible: true,
+        isPreviewVisible: true,
+        isProblemPanelVisible: false,
+        setEditorsVisible: (value) => {
+          const state = get();
+          if (!value && !state.isPreviewVisible) {
+            return;
+          }
+          set({ isEditorsVisible: value });
+        },
+        setPreviewVisible: (value) => {
+          const state = get();
+          if (!value && !state.isEditorsVisible) {
+            return;
+          }
+          set({ isPreviewVisible: value });
+        },
+        setProblemPanelVisible: (value) =>
+          set({ isProblemPanelVisible: value }),
+        init: async () => {
+          const params = new URLSearchParams(window.location.search);
+          const compressedData = params.get("data");
+          if (compressedData) {
+            await get().loadFromLink(compressedData);
+          } else {
+            await get().rebuild();
+          }
+        },
+        loadSample: async (name: string) => {
+          const sample = SAMPLES.find((s) => s.NAME === name);
+          if (sample) {
+            set(() => ({
+              sampleName: sample.NAME,
+              agreementHtml: undefined,
+              error: undefined,
+              templateMarkdown: sample.TEMPLATE,
+              editorValue: sample.TEMPLATE,
+              modelCto: sample.MODEL,
+              editorModelCto: sample.MODEL,
+              data: JSON.stringify(sample.DATA, null, 2),
+              editorAgreementData: JSON.stringify(sample.DATA, null, 2),
+            }));
+            await get().rebuild();
+          }
+        },
+        rebuild: async () => {
+          const { templateMarkdown, modelCto, data } = get();
+          try {
+            const result = await rebuildDeBounce(
+              templateMarkdown,
+              modelCto,
+              data
+            );
+            if (isCancelation(result)) {
+              console.log("[DEBUG] Rebuild cancelled:", result.msg);
+              return;
+            }
+            set(() => ({ agreementHtml: result as string, error: undefined }));
+          } catch (error: any) {
+            console.error(
+              "[DEBUG] Rebuild error:",
+              JSON.stringify(error, Object.getOwnPropertyNames(error))
+            );
+            set(() => ({
+              error: formatError(error),
+              isProblemPanelVisible: true,
+            }));
+          }
+        },
+        setTemplateMarkdown: async (template: string) => {
+          set(() => ({ templateMarkdown: template }));
+          const { modelCto, data } = get();
+          try {
+            const result = await rebuildDeBounce(template, modelCto, data);
+            if (isCancelation(result)) {
+              console.log("[DEBUG] Rebuild cancelled:", result.msg);
+              return;
+            }
+            set(() => ({ agreementHtml: result as string, error: undefined }));
+          } catch (error: any) {
+            set(() => ({
+              error: formatError(error),
+              isProblemPanelVisible: true,
+            }));
+          }
+        },
+        setEditorValue: (value: string) => {
+          set(() => ({ editorValue: value }));
+        },
+        setModelCto: async (model: string) => {
+          set(() => ({ modelCto: model }));
+          const { templateMarkdown, data } = get();
+          try {
+            const result = await rebuildDeBounce(templateMarkdown, model, data);
+            if (isCancelation(result)) {
+              console.log("[DEBUG] Rebuild cancelled:", result.msg);
+              return;
+            }
+            set(() => ({ agreementHtml: result as string, error: undefined }));
+          } catch (error: any) {
+            set(() => ({
+              error: formatError(error),
+              isProblemPanelVisible: true,
+            }));
+          }
+        },
+        setEditorModelCto: (value: string) => {
+          set(() => ({ editorModelCto: value }));
+        },
+        setData: async (data: string) => {
+          set(() => ({ data }));
+          try {
+            const result = await rebuildDeBounce(
+              get().templateMarkdown,
+              get().modelCto,
+              data
+            );
+            if (isCancelation(result)) {
+              console.log("[DEBUG] Rebuild cancelled:", result.msg);
+              return;
+            }
+            set(() => ({ agreementHtml: result as string, error: undefined }));
+          } catch (error: any) {
+            set(() => ({
+              error: formatError(error),
+              isProblemPanelVisible: true,
+            }));
+          }
+        },
+        setEditorAgreementData: (value: string) => {
+          set(() => ({ editorAgreementData: value }));
+        },
+        generateShareableLink: () => {
+          const state = get();
+          const compressedData = compress({
+            templateMarkdown: state.templateMarkdown,
+            modelCto: state.modelCto,
+            data: state.data,
+            agreementHtml: state.agreementHtml,
+          });
+          return `${window.location.origin}?data=${compressedData}`;
+        },
+        loadFromLink: async (compressedData: string) => {
+          try {
+            const { templateMarkdown, modelCto, data, agreementHtml } =
+              decompress(compressedData);
+            if (!templateMarkdown || !modelCto || !data) {
+              throw new Error("Invalid share link data");
+            }
+            set(() => ({
+              templateMarkdown,
+              editorValue: templateMarkdown,
+              modelCto,
+              editorModelCto: modelCto,
+              data,
+              editorAgreementData: data,
+              agreementHtml,
+              error: undefined,
+            }));
+            await get().rebuild();
+          } catch (error) {
+            set(() => ({
+              error:
+                "Failed to load shared content: " +
+                (error instanceof Error ? error.message : "Unknown error"),
+              isProblemPanelVisible: true,
+            }));
+          }
+        },
+        toggleDarkMode: () => {
+          set((state) => {
+            const isDark = state.backgroundColor === "#121212";
+            const newTheme = {
+              backgroundColor: isDark ? "#ffffff" : "#121212",
+              textColor: isDark ? "#121212" : "#ffffff",
+            };
+
+            if (typeof window !== "undefined") {
+              localStorage.setItem("theme", isDark ? "light" : "dark");
+            }
+
+            return newTheme;
+          });
+        },
+        setAIConfigOpen: (isOpen: boolean) =>
+          set(() => ({ isAIConfigOpen: isOpen })),
+        setAIChatOpen: (isOpen: boolean) =>
+          set(() => ({ isAIChatOpen: isOpen })),
+        setChatState: (state) => set({ chatState: state }),
+        updateChatState: (partial) =>
+          set((state) => ({
+            chatState: { ...state.chatState, ...partial },
+          })),
+        setAIConfig: (config) => set({ aiConfig: config }),
+        setChatAbortController: (controller) =>
+          set({ chatAbortController: controller }),
+        resetChat: () => {
+          const { chatAbortController } = get();
+          if (chatAbortController) {
+            chatAbortController.abort();
+          }
+          get().setChatState({
+            messages: [],
+            isLoading: false,
+            error: null,
+          });
+        },
+        startTour: () => {
+          console.log("Starting tour...");
+        },
+      };
     })
   )
 );
-
 
 export default useAppStore;
 

@@ -82,6 +82,16 @@ export default function MarkdownEditor({
     });
 
     if (monaco) {
+      // Configure TypeScript/JavaScript to not load default libs (avoids 404s)
+      const compilerOptions = {
+        target: monaco.languages.typescript.ScriptTarget.ES2015,
+        allowNonTsExtensions: true,
+        moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+        noLib: true,
+      };
+      monaco.languages.typescript.typescriptDefaults.setCompilerOptions(compilerOptions);
+      monaco.languages.typescript.javascriptDefaults.setCompilerOptions(compilerOptions);
+
       registerAutocompletion('markdown', monaco);
     }
   };
