@@ -1,5 +1,5 @@
 .main-container {
-  @apply h-full;
+  @apply h-full flex-1;
 }
 
 .main-container-panel-group {

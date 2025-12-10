@@ -1,9 +1,7 @@
 import { lazy, Suspense, useMemo, useCallback, useEffect } from "react";
 import useAppStore from "../store/store";
 import { useMonaco } from "@monaco-editor/react";
-import { useCodeSelection } from "../components/CodeSelectionMenu";
 import type { editor } from "monaco-editor";
-import { registerAutocompletion } from "../ai-assistant/autocompletion";
 
 
 const MonacoEditor = lazy(() =>
@@ -17,16 +15,14 @@ export default function MarkdownEditor({
   value: string;
   onChange?: (value: string | undefined) => void;
 }) {
-  const { handleSelection, MenuComponent } = useCodeSelection("markdown");
-  const { backgroundColor, textColor, aiConfig } = useAppStore((state) => ({
+  const { backgroundColor, textColor } = useAppStore((state) => ({
     backgroundColor: state.backgroundColor,
     textColor: state.textColor,
-    aiConfig: state.aiConfig,
   }));
   const monaco = useMonaco();
 
   const themeName = useMemo(
-    () => (backgroundColor ? "darkTheme" : "lightTheme"),
+    () => (backgroundColor !== "#ffffff" ? "darkTheme" : "lightTheme"),
     [backgroundColor]
   );
 
@@ -58,29 +54,9 @@ export default function MarkdownEditor({
     wordWrap: "on" as const,
     automaticLayout: true,
     scrollBeyondLastLine: false,
-    inlineSuggest: {
-      enabled: aiConfig?.enableInlineSuggestions !== false,
-      mode: "prefix",
-      suppressSuggestions: false,
-      fontFamily: "inherit",
-      keepOnBlur: true,
-    },
-    suggest: {
-      preview: true,
-      showInlineDetails: true,
-    },
-    quickSuggestions: false,
-    suggestOnTriggerCharacters: false,
-    acceptSuggestionOnCommitCharacter: false,
-    acceptSuggestionOnEnter: "off",
-    tabCompletion: "off",
-  }), [aiConfig?.enableInlineSuggestions]);
+  }), []);
 
-  const handleEditorDidMount = (editor: editor.IStandaloneCodeEditor) => {
-    editor.onDidChangeCursorSelection(() => {
-      handleSelection(editor);
-    });
-
+  const handleEditorDidMount = (_editor: editor.IStandaloneCodeEditor) => {
     if (monaco) {
       // Configure TypeScript/JavaScript to not load default libs (avoids 404s)
       const compilerOptions = {
@@ -91,8 +67,6 @@ export default function MarkdownEditor({
       };
       monaco.languages.typescript.typescriptDefaults.setCompilerOptions(compilerOptions);
       monaco.languages.typescript.javascriptDefaults.setCompilerOptions(compilerOptions);
-
-      registerAutocompletion('markdown', monaco);
     }
   };
 
@@ -116,7 +90,6 @@ export default function MarkdownEditor({
           theme={themeName}
         />
       </Suspense>
-      {MenuComponent}
     </div>
   );
 }

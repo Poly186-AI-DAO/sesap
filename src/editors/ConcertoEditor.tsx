@@ -2,8 +2,6 @@ import { useMonaco } from "@monaco-editor/react";
 import { lazy, Suspense, useCallback, useEffect, useMemo } from "react";
 import * as monaco from "monaco-editor";
 import useAppStore from "../store/store";
-import { useCodeSelection } from "../components/CodeSelectionMenu";
-import { registerAutocompletion } from "../ai-assistant/autocompletion";
 
 const MonacoEditor = lazy(() =>
   import("@monaco-editor/react").then((mod) => ({ default: mod.Editor }))
@@ -116,7 +114,6 @@ const handleEditorWillMount = (monacoInstance: typeof monaco) => {
   });
 
   if (monacoInstance) {
-    registerAutocompletion('concerto', monacoInstance);
   }
 };
 
@@ -129,17 +126,15 @@ export default function ConcertoEditor({
   value,
   onChange,
 }: ConcertoEditorProps) {
-  const { handleSelection, MenuComponent } = useCodeSelection("concerto");
   const monacoInstance = useMonaco();
-  const { error, backgroundColor, aiConfig } = useAppStore((state) => ({
+  const { error, backgroundColor } = useAppStore((state) => ({
     error: state.error,
     backgroundColor: state.backgroundColor,
-    aiConfig: state.aiConfig
   }));
   const ctoErr = error?.startsWith("c:") ? error : undefined;
 
   const themeName = useMemo(
-    () => (backgroundColor ? "darkTheme" : "lightTheme"),
+    () => (backgroundColor !== "#ffffff" ? "darkTheme" : "lightTheme"),
     [backgroundColor]
   );
 
@@ -151,29 +146,10 @@ export default function ConcertoEditor({
     autoClosingBrackets: "languageDefined",
     autoSurround: "languageDefined",
     bracketPairColorization: { enabled: true },
-    inlineSuggest: {
-      enabled: aiConfig?.enableInlineSuggestions !== false,
-      mode: "prefix",
-      suppressSuggestions: false,
-      fontFamily: "inherit",
-      keepOnBlur: true,
-    },
-    suggest: {
-      preview: true,
-      showInlineDetails: true,
-    },
     quickSuggestions: false,
-    suggestOnTriggerCharacters: false,
-    acceptSuggestionOnCommitCharacter: false,
-    acceptSuggestionOnEnter: "off",
-    tabCompletion: "off",
-  }), [aiConfig?.enableInlineSuggestions]);
+  }), []);
 
-  const handleEditorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
-    editor.onDidChangeCursorSelection(() => {
-      handleSelection(editor);
-    });
-  };
+  const handleEditorDidMount = (_editor: monaco.editor.IStandaloneCodeEditor) => {};
 
   const handleChange = useCallback(
     (val: string | undefined) => {
@@ -223,7 +199,6 @@ export default function ConcertoEditor({
           theme={themeName}
         />
       </Suspense>
-      {MenuComponent}
     </div>
   );
 }

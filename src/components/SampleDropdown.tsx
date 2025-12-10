@@ -5,11 +5,7 @@ import useAppStore from "../store/store";
 import { shallow } from "zustand/shallow";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 
-function SampleDropdown({
-  setLoading,
-}: {
-  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
-}): JSX.Element {
+function SampleDropdown(): JSX.Element {
   const { samples, loadSample } = useStoreWithEqualityFn(
     useAppStore,
     (state) => ({
@@ -33,19 +29,16 @@ function SampleDropdown({
   const handleMenuClick = useCallback(
     async (e: { key: string }) => {
       if (e.key) {
-        setLoading(true);
         try {
           await loadSample(e.key);
           void message.info(`Loaded ${e.key} sample`);
           setSelectedSample(e.key);
         } catch (error) {
           void message.error("Failed to load sample");
-        } finally {
-          setLoading(false);
         }
       }
     },
-    [loadSample, setLoading]
+    [loadSample]
   );
   
   

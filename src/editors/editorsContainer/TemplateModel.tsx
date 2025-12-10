@@ -1,7 +1,6 @@
 import ConcertoEditor from "../ConcertoEditor";
 import useAppStore from "../../store/store";
 import useUndoRedo from "../../components/useUndoRedo";
-import { updateEditorActivity } from "../../ai-assistant/activityTracker";
 
 function TemplateModel() {
   const editorModelCto = useAppStore((state) => state.editorModelCto);
@@ -15,7 +14,6 @@ function TemplateModel() {
  
   const handleChange = (value: string | undefined) => {
     if (value !== undefined) {
-      updateEditorActivity('concerto');
       setValue(value); // Update editor state and sync
       setModelCto(value); 
     }

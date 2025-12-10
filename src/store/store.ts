@@ -8,8 +8,7 @@ import { TemplateMarkTransformer } from "@accordproject/markdown-template";
 import { transform } from "@accordproject/markdown-transform";
 import { SAMPLES, Sample } from "../samples";
 import * as playground from "../samples/playground";
-import { compress, decompress } from "../utils/compression/compression";
-import { AIConfig, ChatState } from "../types/components/AIAssistant.types";
+import { decompress } from "../utils/compression/compression";
 
 interface AppState {
   templateMarkdown: string;
@@ -22,13 +21,8 @@ interface AppState {
   error: string | undefined;
   samples: Array<Sample>;
   sampleName: string;
-  isAIConfigOpen: boolean;
-  isAIChatOpen: boolean;
   backgroundColor: string;
   textColor: string;
-  chatState: ChatState;
-  aiConfig: AIConfig | null;
-  chatAbortController: AbortController | null;
   setTemplateMarkdown: (template: string) => Promise<void>;
   setEditorValue: (value: string) => void;
   setModelCto: (model: string) => Promise<void>;
@@ -38,23 +32,7 @@ interface AppState {
   rebuild: () => Promise<void>;
   init: () => Promise<void>;
   loadSample: (name: string) => Promise<void>;
-  generateShareableLink: () => string;
   loadFromLink: (compressedData: string) => Promise<void>;
-  toggleDarkMode: () => void;
-  setAIConfigOpen: (visible: boolean) => void;
-  setAIChatOpen: (visible: boolean) => void;
-  setChatState: (state: ChatState) => void;
-  updateChatState: (partial: Partial<ChatState>) => void;
-  setAIConfig: (config: AIConfig | null) => void;
-  setChatAbortController: (controller: AbortController | null) => void;
-  resetChat: () => void;
-  isEditorsVisible: boolean;
-  isPreviewVisible: boolean;
-  isProblemPanelVisible: boolean;
-  setEditorsVisible: (value: boolean) => void;
-  setPreviewVisible: (value: boolean) => void;
-  setProblemPanelVisible: (value: boolean) => void;
-  startTour: () => void;
 }
 
 export interface DecompressedData {
@@ -377,36 +355,8 @@ const useAppStore = create<AppState>()(
         data: JSON.stringify(playground.DATA, null, 2),
         editorAgreementData: JSON.stringify(playground.DATA, null, 2),
         agreementHtml: "",
-        isAIConfigOpen: false,
-        isAIChatOpen: false,
         error: undefined,
         samples: SAMPLES,
-        chatState: {
-          messages: [],
-          isLoading: false,
-          error: null,
-        },
-        aiConfig: null,
-        chatAbortController: null,
-        isEditorsVisible: true,
-        isPreviewVisible: true,
-        isProblemPanelVisible: false,
-        setEditorsVisible: (value) => {
-          const state = get();
-          if (!value && !state.isPreviewVisible) {
-            return;
-          }
-          set({ isEditorsVisible: value });
-        },
-        setPreviewVisible: (value) => {
-          const state = get();
-          if (!value && !state.isEditorsVisible) {
-            return;
-          }
-          set({ isPreviewVisible: value });
-        },
-        setProblemPanelVisible: (value) =>
-          set({ isProblemPanelVisible: value }),
         init: async () => {
           const params = new URLSearchParams(window.location.search);
           const compressedData = params.get("data");
@@ -453,7 +403,6 @@ const useAppStore = create<AppState>()(
             );
             set(() => ({
               error: formatError(error),
-              isProblemPanelVisible: true,
             }));
           }
         },
@@ -470,7 +419,6 @@ const useAppStore = create<AppState>()(
           } catch (error: any) {
             set(() => ({
               error: formatError(error),
-              isProblemPanelVisible: true,
             }));
           }
         },
@@ -490,7 +438,6 @@ const useAppStore = create<AppState>()(
           } catch (error: any) {
             set(() => ({
               error: formatError(error),
-              isProblemPanelVisible: true,
             }));
           }
         },
@@ -513,22 +460,11 @@ const useAppStore = create<AppState>()(
           } catch (error: any) {
             set(() => ({
               error: formatError(error),
-              isProblemPanelVisible: true,
             }));
           }
         },
         setEditorAgreementData: (value: string) => {
           set(() => ({ editorAgreementData: value }));
-        },
-        generateShareableLink: () => {
-          const state = get();
-          const compressedData = compress({
-            templateMarkdown: state.templateMarkdown,
-            modelCto: state.modelCto,
-            data: state.data,
-            agreementHtml: state.agreementHtml,
-          });
-          return `${window.location.origin}?data=${compressedData}`;
         },
         loadFromLink: async (compressedData: string) => {
           try {
@@ -553,50 +489,8 @@ const useAppStore = create<AppState>()(
               error:
                 "Failed to load shared content: " +
                 (error instanceof Error ? error.message : "Unknown error"),
-              isProblemPanelVisible: true,
             }));
           }
-        },
-        toggleDarkMode: () => {
-          set((state) => {
-            const isDark = state.backgroundColor === "#121212";
-            const newTheme = {
-              backgroundColor: isDark ? "#ffffff" : "#121212",
-              textColor: isDark ? "#121212" : "#ffffff",
-            };
-
-            if (typeof window !== "undefined") {
-              localStorage.setItem("theme", isDark ? "light" : "dark");
-            }
-
-            return newTheme;
-          });
-        },
-        setAIConfigOpen: (isOpen: boolean) =>
-          set(() => ({ isAIConfigOpen: isOpen })),
-        setAIChatOpen: (isOpen: boolean) =>
-          set(() => ({ isAIChatOpen: isOpen })),
-        setChatState: (state) => set({ chatState: state }),
-        updateChatState: (partial) =>
-          set((state) => ({
-            chatState: { ...state.chatState, ...partial },
-          })),
-        setAIConfig: (config) => set({ aiConfig: config }),
-        setChatAbortController: (controller) =>
-          set({ chatAbortController: controller }),
-        resetChat: () => {
-          const { chatAbortController } = get();
-          if (chatAbortController) {
-            chatAbortController.abort();
-          }
-          get().setChatState({
-            messages: [],
-            isLoading: false,
-            error: null,
-          });
-        },
-        startTour: () => {
-          console.log("Starting tour...");
         },
       };
     })
