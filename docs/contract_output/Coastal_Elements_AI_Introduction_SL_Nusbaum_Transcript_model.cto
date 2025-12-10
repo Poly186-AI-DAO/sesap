@@ -1,0 +1,69 @@
+namespace org.accord.poc@1.0.0
+
+concept Contact {
+  o String name
+  o String role
+  o String notes optional
+}
+
+concept Party {
+  o String name
+  o String role optional
+  o Contact[] contacts optional
+}
+
+concept Phase {
+  o String name
+  o String description optional
+  o String[] activities optional
+  o String[] dependencies optional
+  o String[] outputs optional
+}
+
+concept Milestone {
+  o String name
+  o String targetDate optional
+  o String details optional
+}
+
+concept NextStep {
+  o String owner
+  o String action
+  o String status optional
+  o String source optional
+}
+
+concept CommercialTerms {
+  o String paymentTerms optional
+  o String estimatedValue optional
+  o String roiExpectation optional
+  o Double proposedPhase12Fee optional
+  o Double proposedPOCFee optional
+  o Double proposedHourlyRate optional
+}
+
+concept Signature {
+  o String name
+  o String role optional
+  o String date optional
+  o String signature optional
+}
+
+asset POCContract identified by contractId {
+  o String contractId
+  o String title
+  o Party provider
+  o Party intermediary optional
+  o Party client
+  o String effectiveDate optional
+  o String startDate optional
+  o String duration optional
+  o String[] engagementType optional
+  o String[] deliverables optional
+  o Phase[] phases optional
+  o Milestone[] milestones optional
+  o CommercialTerms commercialTerms optional
+  o NextStep[] nextSteps optional
+  o String[] keyQuotes optional
+  o Signature[] signatures optional
+}
