@@ -1,254 +1,254 @@
 {
-  "contractId": "SLN-POC-2025-001",
-  "title": "POC / Pilot Engagement Agreement between Coastal Elements AI and S.L. Nusbaum Realty Co.",
-  "provider": {
-    "name": "Coastal Elements AI (with Poly186.io delivery support)",
-    "role": "AI and automation consulting / implementation provider",
-    "contacts": [
-      {
-        "name": "Dylan Ryan",
-        "role": "Founder / Principal, Coastal Elements AI",
-        "notes": "Primary business and account lead; based in Virginia Beach; focuses on AI strategy for SMBs and mid-market."
-      },
-      {
-        "name": "Princeps Polycap",
-        "role": "Technical Lead (poly186.io)",
-        "notes": "AI/LLM and automation technical architect; focuses on Azure/OpenAI stack and model selection."
-      },
-      {
-        "name": "Drew (last name not stated)",
-        "role": "Delivery Manager",
-        "notes": "Coordinates teams, manages timelines and resources, client communication, and delivery."
-      }
-    ]
+  "contractTitle": "Proof of Concept / Pilot Engagement Agreement between Coastal Elements AI and S.L. Nusbaum",
+  "parties": {
+    "provider": {
+      "name": "Coastal Elements AI (with poly186.io as technical/delivery partner)",
+      "role": "Provider",
+      "contacts": [
+        {
+          "name": "Dylan Ryan",
+          "role": "Founder / Principal, Coastal Elements AI",
+          "notes": "Primary business and account lead; based in Virginia Beach / Hampton Roads. Will schedule follow‑ups and send workshop materials."
+        },
+        {
+          "name": "Princeps Polycap",
+          "role": "Technical Lead (poly186.io)",
+          "notes": "Leads AI/LLM architecture, infrastructure, model selection, and implementation; focuses on Azure/OpenAI/Claude, process automation, and fine‑tuning."
+        },
+        {
+          "name": "Drew",
+          "role": "Delivery Manager / Project Manager",
+          "notes": "Coordinates teams, timelines, resources, and client communications for implementations."
+        }
+      ],
+      "contactsDisplay": [
+        "Dylan Ryan — Founder / Principal; primary account lead",
+        "Princeps Polycap — Technical Lead (poly186.io); AI/LLM architecture",
+        "Drew — Delivery / Project Manager"
+      ]
+    },
+    "intermediary": {
+      "name": "Richard",
+      "role": "Intermediary / Referrer (Broker at S.L. Nusbaum)",
+      "contacts": [
+        {
+          "name": "Richard",
+          "role": "Broker / Relationship contact",
+          "notes": "Existing relationship with Dylan and Mark; made the introduction; likely a stakeholder among brokers in future workshops."
+        }
+      ],
+      "contactsDisplay": [
+        "Richard — Broker / Relationship contact"
+      ]
+    },
+    "client": {
+      "name": "S.L. Nusbaum",
+      "role": "Client (Commercial & Multifamily Real Estate Owner/Manager/Brokerage)",
+      "contacts": [
+        {
+          "name": "Mark Ashley",
+          "role": "IT Director (Director of Technology / Infrastructure)",
+          "notes": "Primary client sponsor and decision maker for AI/IT initiatives; manages small IT team supporting ~200 corporate and ~1,000 multifamily employees; wants governance, Azure‑native solutions, and marketable AI offerings for clients."
+        }
+      ],
+      "contactsDisplay": [
+        "Mark Ashley — IT Director; primary sponsor and decision maker"
+      ]
+    }
   },
-  "intermediary": {
-    "name": "Richard (last name not stated)",
-    "role": "Referrer / internal relationship contact",
-    "contacts": [
-      {
-        "name": "Richard",
-        "role": "Broker or internal stakeholder at S.L. Nusbaum",
-        "notes": "Made the initial connection between Dylan/Coastal Elements and S.L. Nusbaum; appears to be in brokerage group."
-      }
-    ]
-  },
-  "client": {
-    "name": "S.L. Nusbaum Realty Co.",
-    "role": "Client – commercial and multifamily real estate owner/manager",
-    "contacts": [
-      {
-        "name": "Mark Ashley",
-        "role": "IT Director",
-        "notes": "Primary client contact; responsible for IT strategy, Azure/365 environment, AI governance, and budget."
-      },
-      {
-        "name": "Executive Committee",
-        "role": "Budget owners and strategic approvers",
-        "notes": "Require clear ROI and marketable client-facing AI offerings to approve larger investments."
-      },
-      {
-        "name": "Department Heads",
-        "role": "Future internal stakeholders / users",
-        "notes": "Mark will be gathering their AI use cases and needs via workshops/meetings."
-      }
-    ]
-  },
-  "effectiveDate": "2025-01-15",
-  "startDate": "Upon signing (or as agreed following mid-January follow-up)",
-  "duration": "Initial engagement covering Phases 1–3 over Q1–Q2 with optional Phase 4 to be scoped",
   "engagementType": [
     "Audit/Assessment",
     "Workshop/Training",
     "Consulting",
-    "Proof of Concept (POC)",
-    "Potential future: Productized/SaaS solution design for client-facing offering"
+    "Proof of Concept (POC)"
   ],
-  "deliverables": [
-    "Initial AI/automation discovery and process audit across key departments (HR, Finance/Accounting, Multifamily operations, Brokerage, etc.).",
-    "Written workshop framework and departmental discovery question sets to guide internal meetings.",
-    "ROI-oriented prioritized use case list focused on quick wins.",
-    "Recommended AI/automation solution concepts aligned to S.L. Nusbaum’s Azure / Microsoft 365 environment.",
-    "Optional design and implementation of specific automations/agents within S.L. Nusbaum’s Azure tenant.",
-    "Optional design of a differentiated, client-facing AI-enabled offering for S.L. Nusbaum to market."
-  ],
-  "phases": [
-    {
-      "name": "Phase 1 – Discovery & Internal Alignment",
-      "description": "Client conducts one-on-ones and departmental meetings; Provider supplies workshop frameworks and discovery materials.",
-      "activities": [
-        "Client one-on-one discovery with executives and department heads.",
-        "Department-head meeting (client-side) to collect inputs.",
-        "Provider delivers workshop templates and discovery question documents.",
-        "Informal relationship-building meeting (lunch/beers) prior to formal follow-up."
-      ],
-      "dependencies": [
-        "Completion of client budget season and initial 2025 IT draft budget.",
-        "Client internal intel gathering on AI expectations and priorities."
-      ],
-      "outputs": [
-        "Completed discovery notes and departmental input.",
-        "Workshop framework and question sets delivered to Client."
-      ]
-    },
-    {
-      "name": "Phase 2 – Joint Workshops / AI & Process Audit",
-      "description": "Provider runs workshops and performs process/data audits to identify high-ROI opportunities.",
-      "activities": [
-        "Workshops with HR, Finance/Accounting, Multifamily operations, Brokerage, and other groups.",
-        "Process and data audit (data location, SOPs, workflow mapping).",
-        "Identification of high-ROI use cases and assessment of vendor-provided AI features."
-      ],
-      "dependencies": [
-        "Availability of department stakeholders for scheduled workshops.",
-        "Access to sample data and SOPs as required."
-      ],
-      "outputs": [
-        "Prioritized use case list with quantified time-savings / ROI estimates.",
-        "Recommendations on quick POCs vs. larger initiatives."
-      ]
-    },
-    {
-      "name": "Phase 3 – POC / Pilot Implementations",
-      "description": "Design and implement 1–2 prioritized POCs to demonstrate value and measure impact.",
-      "activities": [
-        "Design and implement small targeted automation or AI agents (e.g., contract assistant, document ingestion/report agent).",
-        "Deploy primarily within Client's Azure environment; temporary hosting by Provider if needed.",
-        "Measure baseline vs. post-implementation metrics and prepare ROI report."
-      ],
-      "dependencies": [
-        "Selection of 1–2 prioritized quick-win use cases by Client and Provider.",
-        "Access and permissions to required data and environments."
-      ],
-      "outputs": [
-        "Working POC/pilot solution accessible to relevant teams.",
-        "ROI report and decision recommendations for scaling."
-      ]
-    },
-    {
-      "name": "Phase 4 – Scaled Solution / Productization (Optional)",
-      "description": "If agreed, design and build a marketable AI-enabled solution for Client's clients or internal scale.",
-      "activities": [
-        "Define product vision and value proposition.",
-        "Decide deployment model: in-tenant vs. Provider-managed SaaS.",
-        "Technical architecture, build, integration, and governance review."
-      ],
-      "dependencies": [
-        "Executive buy-in and formal project approval.",
-        "Budget and procurement for scaled implementation."
-      ],
-      "outputs": [
-        "Client-facing AI product/feature set and operational runbooks.",
-        "Governance and compliance documentation."
-      ]
-    }
-  ],
-  "milestones": [
-    {
-      "name": "Internal discovery & budget season (client-side)",
-      "targetDate": "Q4 current year",
-      "details": "Mark is in the middle of multifamily and corporate budget season and has submitted an initial draft including AI consulting hours."
-    },
-    {
-      "name": "Department head meeting",
-      "targetDate": "Later this month (relative to Nov 5 meeting)",
-      "details": "Gather inputs from department heads on AI needs and pain points."
-    },
-    {
-      "name": "Brokers’ meeting with Mark",
-      "targetDate": "January (monthly brokers meeting)",
-      "details": "Collect brokerage-specific use cases and one-off requests."
-    },
-    {
-      "name": "Mid-January follow-up with Coastal Elements",
-      "targetDate": "Mid-January",
-      "details": "Regroup to review collected use cases and evaluate partnership scope."
-    },
-    {
-      "name": "Pre–January informal meeting",
-      "targetDate": "Before mid-January follow-up",
-      "details": "Informal lunch/beer meeting between Dylan and Mark to discuss ideas."
-    },
-    {
-      "name": "Post–January: potential POCs and workshops",
-      "targetDate": "To be determined (likely Q1–Q2)",
-      "details": "Initiate POCs and workshops depending on executive committee appetite and priorities."
-    }
-  ],
+  "scopeOfWork": {
+    "deliverables": [
+      "Initial AI readiness and process/data audit focusing on key departments (HR, Finance/Accounting, Multifamily Operations, Brokerage).",
+      "Workshop framework document outlining how to run AI discovery sessions with department heads (including agendas and facilitation approach).",
+      "Department‑specific discovery question lists to uncover AI/automation use cases and pain points.",
+      "ROI‑oriented analysis template for AI use cases (time spent, manual effort, process fragmentation, expected savings/value).",
+      "Recommendation summary of potential AI use cases, prioritized by ROI and strategic value (especially client‑facing, marketable offerings).",
+      "Design and potential build of AI solutions in S.L. Nusbaum’s Azure environment (e.g., contract review assistant, process automation, fine‑tuned models) after January follow‑up and scoping.",
+      "Optional access/integration to Coastal Elements’ existing real‑estate AI SaaS solutions where appropriate."
+    ],
+    "phases": [
+      {
+        "name": "Phase 1 – Discovery & AI Readiness",
+        "description": "Understand S.L. Nusbaum’s current AI usage, infrastructure, departmental needs, and executive priorities; identify quick wins and strategically valuable client‑facing opportunities.",
+        "activities": [
+          "Conduct high‑level AI/process/data audit (Azure, M365/Copilot, existing bots).",
+          "Hold one‑on‑one discussions with executives and department heads using workshop framework and questions.",
+          "Map KPIs/OKRs to potential AI/automation improvements.",
+          "Identify manual/administrative tasks suitable for automation (contract review, data aggregation, reporting)."
+        ],
+        "dependencies": [
+          "Mark completes internal conversations with executives, department heads, and brokers (Nov–Jan).",
+          "Workshop question framework and guidance from Coastal Elements AI provided to Mark."
+        ],
+        "outputs": [
+          "List of departmental pain points and AI/automation opportunities.",
+          "Preliminary inventory of candidate use cases.",
+          "Baseline data for ROI modeling."
+        ]
+      },
+      {
+        "name": "Phase 2 – Use Case Prioritization & POC Design",
+        "description": "Translate discovery findings into prioritized AI initiatives and define one or more POCs, with clear ROI and governance.",
+        "activities": [
+          "Evaluate use cases against KPIs/OKRs and ROI potential.",
+          "Decide whether to leverage vendor features, Coastal Elements SaaS, or custom Azure builds.",
+          "Design POC(s) including data sources, models, and security constraints.",
+          "Estimate costs, resources, timelines; define success metrics and governance."
+        ],
+        "dependencies": [
+          "Completion of Phase 1 discovery outputs.",
+          "Executive clarity on client‑facing vs internal solutions."
+        ],
+        "outputs": [
+          "Prioritized AI use case roadmap.",
+          "POC design documents (architecture, data flows, model choices, security/governance).",
+          "Initial budgetary estimates and ROI justification narrative."
+        ]
+      },
+      {
+        "name": "Phase 3 – POC Build & Deployment (Client Environment)",
+        "description": "Implement selected AI POC(s) in the Client’s Azure tenant, integrating with existing systems.",
+        "activities": [
+          "Stand up required Azure services and AI infrastructure in Nusbaum’s environment.",
+          "Ingest and preprocess internal documents for LLM use with proper access controls.",
+          "Build automations and agents (contract assistant, broker briefing generator, process bots).",
+          "Fine‑tune or configure models based on Nusbaum’s documents where beneficial.",
+          "User acceptance testing and iterative prompt/system instruction tuning.",
+          "Handover documentation and light training for IT and end users."
+        ],
+        "dependencies": [
+          "Green‑light and budget approval from executive committee based on Phase 2 outputs.",
+          "Azure access and security/governance approvals from Mark and IT team."
+        ],
+        "outputs": [
+          "Working POC(s) deployed in Nusbaum’s Azure environment (or hosted as agreed).",
+          "Usage and performance metrics against defined KPIs/OKRs.",
+          "Refined rollout and scale‑up plan."
+        ]
+      },
+      {
+        "name": "Phase 4 – Scale‑up & Marketable Offering",
+        "description": "Scale successful POCs into production and position them as part of Nusbaum’s client‑facing offerings.",
+        "activities": [
+          "Harden POC solutions for production (monitoring, logging, support).",
+          "Expand rollout across departments/properties where applicable.",
+          "Assist in articulating AI offerings for marketing and sales.",
+          "Provide ongoing advisory to avoid snowflake technical debt."
+        ],
+        "dependencies": [
+          "Successful POC(s) with demonstrated ROI and executive sponsorship.",
+          "Defined go‑to‑market message for AI‑enabled services."
+        ],
+        "outputs": [
+          "Production AI solutions embedded in operations and client offerings.",
+          "Executive‑level AI value story and collateral."
+        ]
+      }
+    ],
+    "phaseSummaries": [
+      "Phase 1 – Discovery & AI Readiness: audit, interviews, KPI mapping, quick wins.",
+      "Phase 2 – Use Case Prioritization & POC Design: prioritize, design POC(s), estimate costs.",
+      "Phase 3 – POC Build & Deployment: implement POC(s) in Azure, test, handover.",
+      "Phase 4 – Scale‑up & Marketable Offering: production hardening, rollout, go‑to‑market support."
+    ]
+  },
+  "timeline": {
+    "startDate": null,
+    "duration": "Exploratory phase through mid‑January 2026, with POC and implementation timelines to be determined after discovery.",
+    "milestones": [
+      {
+        "name": "Internal Discovery by Mark with Execs & Departments",
+        "targetDate": "By mid‑January",
+        "details": "Mark to meet with executives, department heads, and brokers to gather AI needs, pain points, and opportunities."
+      },
+      {
+        "name": "Mid‑January Follow‑Up Meeting",
+        "targetDate": "Mid‑January (exact date TBD)",
+        "details": "Regroup between Coastal Elements AI and S.L. Nusbaum to review discovery insights and identify candidate POCs."
+      },
+      {
+        "name": "Workshop Framework & Questions Delivery",
+        "targetDate": "Within ~1 week after the November 5 meeting",
+        "details": "Dylan to email Mark example workshop framework and department‑specific discovery questions."
+      },
+      {
+        "name": "Potential POC Kickoff",
+        "targetDate": null,
+        "details": "To be scheduled post mid‑January meeting, once prioritized use cases and budget are defined."
+      }
+    ],
+    "milestonesSummaries": [
+      "Internal discovery by Mark with execs & departments — by mid‑January.",
+      "Mid‑January follow‑up meeting to review discovery insights.",
+      "Delivery of workshop framework & questions within ~1 week after Nov 5 meeting.",
+      "Potential POC kickoff to be scheduled after mid‑January."
+    ]
+  },
   "commercialTerms": {
-    "paymentTerms": "50% due upon signing; remaining balance invoiced upon completion of each phase and due within 30 days. Provider expenses reimbursable at cost with receipts.",
-    "estimatedValue": "TBD upon scoping of selected POCs and optional productization.",
-    "roiExpectation": "Executive committee requires clear, quantified ROI beyond internal time savings and desire for marketable client-facing offerings.",
-    "proposedPhase12Fee": 12500,
-    "proposedPOCFee": 15000,
-    "proposedHourlyRate": 200
+    "paymentTerms": "Phase 1: $20,000 (50% due on signing, 50% due on delivery of Phase 1 report). Phase 2: $12,000 (50% on Phase 2 start, 50% on delivery of POC design). Phase 3: POC build to be estimated and approved; billed T&M or fixed fee as agreed. Invoices net 30. Travel/expenses reimbursed at cost with prior approval.",
+    "estimatedValue": "Initial discovery & design fixed fees approx. $32,000; POC build estimates TBD after Phase 2.",
+    "roiExpectation": "Engagements must show clear ROI; Coastal will quantify ROI by comparing current manual time vs. post‑automation time and tying improvements to existing KPIs/OKRs."
   },
   "nextSteps": [
     {
-      "owner": "Dylan / Coastal Elements",
-      "action": "Set a calendar placeholder for a mid-January follow-up meeting with Mark to revisit AI opportunities after his internal discovery.",
+      "owner": "Dylan Ryan / Coastal Elements AI",
+      "action": "Schedule a mid‑January follow‑up meeting with Mark to review departmental conversations and AI opportunities.",
       "status": "Planned",
-      "source": "Will set something up for mid-January follow-up."
+      "source": "maybe mid-January, kind of regroup..."
     },
     {
-      "owner": "Dylan / Coastal Elements",
-      "action": "Prepare and email Mark a workshop framework and sample discovery questions targeted at key departments.",
+      "owner": "Dylan Ryan / Coastal Elements AI",
+      "action": "Email Mark a workshop framework plus discovery questions for key departments (HR, Finance/Accounting, Multifamily, Brokerage).",
       "status": "Planned",
-      "source": "Provider to send examples of workshop frameworks and question sets."
+      "source": "I'm going to... put together a couple things just to send over..."
     },
     {
-      "owner": "Mark",
-      "action": "Conduct one-on-ones with executives and department heads to gather AI-related needs and expectations using provided materials.",
-      "status": "In progress / upcoming",
-      "source": "Client to gather internal inputs."
+      "owner": "Mark Ashley",
+      "action": "Conduct one‑on‑one discussions with executives and department heads to understand their AI needs and ideas.",
+      "status": "Planned",
+      "source": "I'm starting to have more conversations with some of the department heads..."
     },
     {
-      "owner": "Mark",
-      "action": "Participate in department head meeting later this month and brokers’ meeting in January to collect concrete AI use cases.",
+      "owner": "Mark Ashley",
+      "action": "Clarify executive committee expectations for AI and identify potential high‑value use cases.",
       "status": "Planned",
-      "source": "Client to collect use cases at scheduled meetings."
+      "source": "it needs to be something that they can go out there in the field..."
     },
     {
-      "owner": "Dylan & Mark",
-      "action": "Schedule an informal lunch/beer meeting before the January follow-up to strengthen relationship and discuss ideas.",
+      "owner": "Dylan Ryan / Mark Ashley",
+      "action": "Schedule an informal lunch before January follow‑up to strengthen relationship and discuss AI ideas.",
       "status": "Planned",
-      "source": "Relationship building prior to mid-January follow-up."
-    },
-    {
-      "owner": "Dylan / Coastal Elements and Mark",
-      "action": "At mid-January follow-up, review collected use cases and identify 1–2 high-ROI quick wins suitable for initial POC/pilot, then scope potential engagement.",
-      "status": "Planned",
-      "source": "Re-evaluate lowest hanging fruit for initial POC."
+      "source": "We’ll grab lunch one day..."
     }
   ],
   "keyQuotes": [
-    "I really think that, you know, a partnership between our groups... focusing on developing a solution... vision is what a group like yours could offer us.",
-    "What I'm seeing for late 26 into 27... companies like ours really starting to market what AI solutions they have... if we're not doing that, it's going to pass us by.",
-    "The big thing for us is you just got to find one quick win for the organization, show them kind of what that is, and then it's a lot easier for them to comprehend and understand.",
-    "We first start to audit… we audit the processes you have, the actual data you have… And then we give you a recommendation… If the client doesn't have any infrastructure in place, then… we'll host it on our side…"
+    "My focus has been... we have Copilot, we've released it to everyone...",
+    "To me, it is... I tend to look at what time is being spent... shows an ROI there immediately.",
+    "I really think that a partnership between our groups... focusing on developing a solution... market what AI solutions we have."
+  ],
+  "nextStepsSummaries": [
+    "Dylan to schedule mid‑January follow‑up meeting with Mark.",
+    "Dylan to email workshop framework and discovery questions to Mark.",
+    "Mark to conduct one‑on‑one discussions with execs and department heads.",
+    "Mark to clarify executive expectations for client‑facing AI offerings.",
+    "Informal lunch meeting to strengthen relationships and discuss ideas."
   ],
   "signatures": [
     {
-      "name": "Dylan Ryan",
+      "signerName": "Dylan Ryan",
       "role": "Founder / Principal, Coastal Elements AI",
       "date": "",
       "signature": ""
     },
     {
-      "name": "Princeps Polycap",
-      "role": "Technical Lead (poly186.io)",
-      "date": "",
-      "signature": ""
-    },
-    {
-      "name": "Mark Ashley",
-      "role": "IT Director, S.L. Nusbaum Realty Co.",
-      "date": "",
-      "signature": ""
-    },
-    {
-      "name": "Authorized Signatory",
-      "role": "Executive Committee Representative, S.L. Nusbaum Realty Co.",
+      "signerName": "Mark Ashley",
+      "role": "IT Director, S.L. Nusbaum",
       "date": "",
       "signature": ""
     }

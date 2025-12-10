@@ -1,140 +1,131 @@
-POC / Pilot Engagement Agreement
+# Proof of Concept / Pilot Engagement Agreement
 
-This Agreement ("Agreement") is made between the parties identified below on the Effective Date provided.
+{{contractTitle}}
 
-Title: {{title}}
+This Proof of Concept / Pilot Engagement Agreement ("Agreement") is made between the parties identified below.
 
-PARTIES
+RECITALS
 
-Provider:
-{{#clause provider}}
-  {{name}} ({{role}})
-  {{#ulist contacts}}
-    - {{name}}{{#if role}}, {{role}}{{/if}}{{#if notes}} — {{notes}}{{/if}}
-  {{/ulist}}
-{{/clause}}
+Whereas, the parties set forth their mutual understanding and agree to the terms in this Agreement.
 
-{{#if intermediary}}
-Intermediary / Referrer:
-{{#clause intermediary}}
-  {{name}} ({{role}})
-  {{#ulist contacts}}
-    - {{name}}{{#if role}}, {{role}}{{/if}}{{#if notes}} — {{notes}}{{/if}}
-  {{/ulist}}
-{{/clause}}
-{{/if}}
+Provider: {{#if parties.provider.contactsDisplay.[0]}}{{parties.provider.contactsDisplay.[0]}}{{else}}{{parties.provider.name}} ({{parties.provider.role}}){{/if}}
 
-Client:
-{{#clause client}}
-  {{name}} ({{role}})
-  {{#ulist contacts}}
-    - {{name}}{{#if role}}, {{role}}{{/if}}{{#if notes}} — {{notes}}{{/if}}
-  {{/ulist}}
-{{/clause}}
+Client: {{#if parties.client}}{{parties.client.name}} ({{parties.client.role}}){{/if}}
 
-RECITALS / BACKGROUND
+Intermediary: {{#if parties.intermediary}}{{parties.intermediary.name}} ({{parties.intermediary.role}}){{/if}}
 
-Whereas the Provider offers AI, automation and consulting services; and
-Whereas the Client seeks to evaluate AI opportunities, perform a process audit and run one or more POC/pilot implementations to demonstrate value and support executive decision-making; and
-Whereas the parties intend to proceed initially with discovery, workshops, and up to two targeted POCs with the potential for later productization or scaled solutions;
+Background
 
-Now, therefore, in consideration of the mutual promises contained herein, the parties agree as follows.
+- {{parties.provider.name}} brings expertise in AI strategy, architecture, and Azure‑native implementations, and will act as the Provider for this engagement.
+- {{parties.client.name}} seeks to evaluate, prioritize, and (potentially) deploy AI solutions to improve internal processes and to create marketable, client‑facing offerings.
+- The parties wish to proceed with an exploratory engagement that includes discovery, prioritization, POC design, and — if approved — POC implementation in the Client’s Azure environment.
+
+AGREEMENT
 
 1. Scope of Work
 
-1.1 Engagement Types
-{{#ulist engagementType}}
-- {{.}}
-{{/ulist}}
-
-1.2 Deliverables
+{{#clause scopeOfWork}}
+Deliverables include:
 {{#ulist deliverables}}
 - {{.}}
 {{/ulist}}
 
-1.3 Phases
-{{#clause phases}}
-Phase: {{name}}
-  Description: {{description}}
-  Activities:
-  {{#ulist activities}}
-  - {{.}}
-  {{/ulist}}
-  {{#if dependencies}}
-  Dependencies:
-  {{#ulist dependencies}}
-  - {{.}}
-  {{/ulist}}
-  {{/if}}
-  {{#if outputs}}
-  Expected Outputs:
-  {{#ulist outputs}}
-  - {{.}}
-  {{/ulist}}
-  {{/if}}
+Phases and approach (summary):
+{{#ulist phaseSummaries}}
+- {{.}}
+{{/ulist}}
 
+Detailed phase descriptions and activities will be provided in separate phase deliverables and workshop artifacts.
 {{/clause}}
 
-2. Timeline & Milestones
+2. Timeline and Milestones
 
-Start Date: {{startDate}}
-Duration: {{duration}}
+The parties agree to proceed with an exploratory phase through mid‑January 2026, with POC and implementation timelines to be determined after discovery.
 
-Milestones
-{{#clause milestones}}
-- {{name}} — Target: {{targetDate}}{{#if details}}; {{details}}{{/if}}
+Key milestones:
+{{#clause timeline}}
+{{#ulist milestonesSummaries}}
+- {{.}}
+{{/ulist}}
 {{/clause}}
 
-3. Commercial Terms
+Specific milestone dates will be set by mutual agreement as discovery outputs are delivered.
 
+3. Commercial Terms and Payment
+
+{{#clause commercialTerms}}{{/clause}}
+
+Payment summary (example and agreed schedule):
 {{#clause commercialTerms}}
-Payment Terms: {{paymentTerms}}
+- Phase 1 (Discovery & Workshops): $20,000 payable 50% on signing of this Agreement and 50% on delivery of the Phase 1 report (AI readiness and discovery outputs).
+- Phase 2 (Use Case Prioritization & POC Design): $12,000 payable 50% on project start for Phase 2 and 50% on delivery of the POC design package.
+- Phase 3 (POC Build & Deployment): Budgetary estimate to be provided following Phase 2; POC work will be billed on a time and materials basis or as a fixed fee per POC as agreed in a separate statement of work.
+- All travel and out‑of‑pocket expenses, if any, will be reimbursed by Client at cost, subject to prior approval where required.
 
-Proposed Fees (for planning purposes):
-- Phase 1 & 2 (Discovery & Workshops): ${{proposedPhase12Fee}} fixed fee
-- Phase 3 (POC / Pilot): ${{proposedPOCFee}} per POC / pilot
-- Optional Phase 4 (Scaled/Productization): ${{proposedHourlyRate}} per hour for design & build (estimates subject to scoping)
-
-Estimated Value: {{estimatedValue}}
-ROI Expectation: {{roiExpectation}}
+Invoices are payable within 30 days of receipt. Late payments may accrue interest at 1.5% per month or the maximum permitted by law.
 {{/clause}}
-
-Invoices will be issued per the schedule above. Unless otherwise agreed, invoices are due within 30 days of invoice date. Travel and third‑party expenses, if any, will be reimbursed by Client at cost with receipts.
 
 4. Confidentiality
 
-Each party agrees to keep confidential all non‑public information disclosed by the other party in connection with this engagement. Confidential information shall be used only for purposes of performing this Agreement and shall not be disclosed to third parties except as required by law. This confidentiality obligation survives termination of this Agreement for a period of two (2) years.
+Each party agrees that Confidential Information disclosed by the other party will be used solely for the purposes of this engagement and will not be disclosed to third parties except to those employees, contractors or advisors who need to know and who are bound by obligations of confidentiality no less restrictive than those in this Agreement. Confidential Information does not include information that is publicly known through no breach of this Agreement, already known without obligation of confidentiality, or independently developed.
 
-5. Intellectual Property
+5. Term and Termination
 
-Unless otherwise agreed in writing, the Client owns its data and final deliverables specifically prepared for Client under this Agreement. The Provider retains ownership of pre‑existing tools, frameworks, templates, and general know‑how used to deliver services. Provider grants Client a non‑exclusive license to use any Provider tools as part of delivered solutions as described in project documentation.
+This Agreement begins upon signature and covers the work described in Section 1. Either party may terminate this Agreement for convenience with 30 days' written notice. Either party may also terminate for cause if the other party materially breaches this Agreement and fails to remedy the breach within 15 days of written notice. On termination, Provider will invoice Client for all work performed and reasonable wind‑down costs; Client will pay undisputed amounts within 30 days.
 
-6. Termination
+6. Intellectual Property and Deployment
 
-Either party may terminate this Agreement for convenience with thirty (30) days' prior written notice. Upon termination, Client will pay Provider for all work performed and reasonable expenses incurred to the effective date of termination. Either party may terminate for material breach after providing the other party a reasonable cure period (not to exceed 30 days) if the breach is not cured.
+Unless otherwise agreed in writing, work product created specifically for the Client under this Agreement will be owned by the Client upon full payment; Provider retains ownership of its pre‑existing tools, frameworks, and proprietary SaaS components. If a POC uses Provider’s existing SaaS, licensing or integration terms will be set out in a separate addendum.
 
-7. Limitation of Liability (brief)
+7. Limitation of Liability
 
-Except for willful misconduct or gross negligence, neither party will be liable to the other for indirect, special, incidental, or consequential damages arising from this Agreement.
+Except for liability arising from willful misconduct or gross negligence, each party’s liability is limited to direct damages up to the amount paid by Client to Provider under this Agreement in the prior twelve (12) months. Neither party is liable for consequential, incidental, special or punitive damages.
 
-8. Next Steps
+8. Miscellaneous
 
-{{#ulist nextSteps}}
-- Owner: {{owner}} — {{action}} (Status: {{status}}){{#if source}}; Source: {{source}}{{/if}}
+Governing law: The laws of the Commonwealth of Virginia (or other mutually agreed jurisdiction) govern this Agreement. This Agreement constitutes the entire agreement between the parties related to its subject matter and supersedes prior discussions.
+
+Notices: All notices required or permitted under this Agreement shall be in writing and delivered to the contact details provided by each party, by personal delivery, nationally recognized overnight courier, certified mail (postage prepaid, return receipt requested), or email when receipt is acknowledged.
+
+Force Majeure: Neither party will be liable for delays or failures in performance caused by events beyond its reasonable control, including acts of God, pandemics, strikes, governmental actions, or infrastructure outages. The affected party shall notify the other promptly and use reasonable efforts to resume performance.
+
+Assignment: Neither party may assign this Agreement without the prior written consent of the other party, except to a successor in interest in connection with a merger, acquisition or sale of substantially all assets, provided the successor assumes all obligations hereunder.
+
+Independent Contractors: The parties are independent contractors. Nothing in this Agreement creates a partnership, joint venture, agency, or employment relationship between the parties.
+
+Severability: If any provision of this Agreement is held invalid or unenforceable, the remaining provisions will remain in full force and effect.
+
+Amendment and Waiver: This Agreement may be amended only by a writing signed by both parties. No waiver of any provision is effective unless in writing and signed by the waiving party.
+
+Counterparts: This Agreement may be executed in counterparts, each of which is deemed an original and all of which together constitute one instrument. Electronic signatures are permitted.
+
+9. Next Steps
+
+Planned immediate actions:
+{{#ulist nextStepsSummaries}}
+- {{.}}
 {{/ulist}}
 
-9. Miscellaneous
+10. Acceptance and Signatures
 
-This Agreement is governed by the laws of the mutually agreed jurisdiction. Any amendments must be in writing and signed by authorized representatives of both parties.
+By signing below, the parties acknowledge and accept the terms of this Engagement Agreement.
 
-EXECUTION
+Provider:
 
-By signing below, the parties acknowledge and agree to the terms of this Agreement.
+Signature: ____________________________
 
-{{#clause signatures}}
-Signature: {{signature}}
-Name: {{name}}
-Role: {{role}}
-Date: {{date}}
+Name: {{signatures.[0].signerName}}
 
-{{/clause}}
+Title: {{signatures.[0].role}}
+
+Date: {{signatures.[0].date}}
+
+Client:
+
+Signature: ____________________________
+
+Name: {{signatures.[1].signerName}}
+
+Title: {{signatures.[1].role}}
+
+Date: {{signatures.[1].date}}

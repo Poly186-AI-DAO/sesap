@@ -1,144 +1,116 @@
 # SESAP MCP - Work In Progress
 
 > **Last Updated**: 2024-12-10
-> **Status**: 🔴 Planning Phase
+> **Status**: 🟢 Phase 1 Complete → Robustifying
 
 ---
 
-## Goals
+## What Works NOW
 
-1. **Simple API** - "Hey, make me a social contract for [situation]"
-2. **MCP-first** - Expose contract generation as MCP tools for LLM agents
-3. **Azure OpenAI** - Use gpt-5-mini, gpt-5-nano, gpt-5.1 deployments
-4. **PostgreSQL** - Persist contracts and track execution
-5. **Frontend** - Keep current Vite playground as user-facing UI
+```
+Transcript.txt  →  GPT-5.1  →  GPT-5-mini  →  Contract Artifacts
+                   (structure)   (Accord)       (model + template + data)
+```
+
+**Test Result**: 50-min meeting transcript → 4 contract files generated
+- GPT-5.1: 15,742 tokens (structure extraction)
+- GPT-5-mini: 9,146 tokens (Accord artifact generation)
 
 ---
 
-## Current Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    SESAP (Current State)                     │
+│                    CURRENT (Vanilla)                         │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
-│  ┌─────────────┐     ┌──────────────────────────────────┐   │
-│  │   Vite UI   │────▶│   Accord Project (browser-side)   │   │
-│  │  (React)    │     │ - ModelManager                    │   │
-│  └─────────────┘     │ - TemplateMarkInterpreter         │   │
-│                      │ - transform() -> HTML              │   │
-│                      └──────────────────────────────────┘   │
-│                                                              │
-│  ❌ No MCP Server                                            │
-│  ❌ No Persistence (PostgreSQL ready but not connected)      │
-│  ❌ No Contract Execution Tracking                           │
-│  ❌ Browser-side API keys (insecure)                         │
+│  server/                                                     │
+│  ├── llm/                                                    │
+│  │   └── azure-client.ts    # Azure OpenAI only              │
+│  │                          # GPT-5.1 / 5-mini / 5-nano      │
+│  │                          # Cascading model tiers          │
+│  │                                                           │
+│  └── scripts/                                                │
+│      └── transcript-to-contract.ts                           │
+│                             # 3-step pipeline                │
+│                             # JSON response format           │
+│                             # NO frameworks (vanilla SDK)    │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
+**What We DON'T Use**:
+- ❌ LangChain
+- ❌ OpenAI Agents SDK
+- ❌ Multi-provider (Anthropic, Google, etc)
+- ❌ Browser-side LLM calls
+
+**What We DO Use**:
+- ✅ Azure AI Foundry (GPT-5.1, 5-mini, 5-nano)
+- ✅ OpenAI SDK (vanilla)
+- ✅ JSON response format
+- ✅ Cascading model tiers
+
 ---
 
-## Target Architecture
+## Robustness Improvements (Phase 1.5)
+
+| Improvement | Status | Benefit |
+|-------------|--------|---------|
+| Zod structured output | TODO | Type-safe JSON, better parsing |
+| Retry logic | TODO | Handle rate limits, transient errors |
+| Stream output | TODO | Better UX for long extractions |
+| Clean up old LLM providers | TODO | Remove unused code in `src/ai-assistant/` |
+
+---
+
+## Pipeline Flow
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    SESAP (Target State)                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌─────────────┐     ┌──────────────────────────────────┐   │
-│  │   Vite UI   │────▶│         MCP Server (Node.js)      │   │
-│  │  (React)    │     │                                    │   │
-│  └─────────────┘     │  Tools:                            │   │
-│                      │  - create_contract(description)    │   │
-│  ┌─────────────┐     │  - get_contract(id)                │   │
-│  │ MCP Clients │────▶│  - validate_contract(id)           │   │
-│  │ (Claude,etc)│     │  - list_contracts(filters)         │   │
-│  └─────────────┘     │                                    │   │
-│                      └───────────────┬──────────────────┘   │
-│                                      │                       │
-│                      ┌───────────────▼──────────────────┐   │
-│                      │         Azure OpenAI              │   │
-│                      │  gpt-5-mini / gpt-5-nano          │   │
-│                      └───────────────┬──────────────────┘   │
-│                                      │                       │
-│                      ┌───────────────▼──────────────────┐   │
-│                      │         PostgreSQL                 │   │
-│                      │  - contracts table                 │   │
-│                      │  - parties table                   │   │
-│                      │  - signatures table                │   │
-│                      └──────────────────────────────────┘   │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────┐     ┌─────────────────────────────────────────┐
+│  Transcript  │────▶│  Step 1: GPT-5.1 (Heavy)                │
+│  (.txt)      │     │  - Extract structure                     │
+└──────────────┘     │  - Parties, phases, milestones           │
+                     └────────────────┬────────────────────────┘
+                                      ▼
+                     ┌─────────────────────────────────────────┐
+                     │  Step 2: GPT-5-mini (Medium)            │
+                     │  - Generate Accord artifacts             │
+                     │  - Concerto model, TemplateMark, JSON   │
+                     └────────────────┬────────────────────────┘
+                                      ▼
+                     ┌─────────────────────────────────────────┐
+                     │  Step 3: GPT-5-nano (Light) [optional]  │
+                     │  - Validate & polish                     │
+                     │  - Falls back to Step 2 if fails         │
+                     └────────────────┬────────────────────────┘
+                                      ▼
+                     ┌─────────────────────────────────────────┐
+                     │  Output: 4 Files                        │
+                     │  - *_structure.json                      │
+                     │  - *_model.cto                           │
+                     │  - *_template.tem.md                     │
+                     │  - *_data.json                           │
+                     └─────────────────────────────────────────┘
 ```
 
 ---
 
-## MCP Tools (Simplified)
+## Files Created
 
-| Tool | Description | Input |
-|------|-------------|-------|
-| `create_contract` | Generate SSC from natural language | `{ description: string }` |
-| `get_contract` | Retrieve contract by ID | `{ id: string }` |
-| `validate_contract` | Check contract validity | `{ id: string }` |
-| `list_contracts` | List user's contracts | `{ status?: string }` |
-
----
-
-## Azure OpenAI Configuration
-
-| Model | Deployment Name | Use Case |
-|-------|-----------------|----------|
-| GPT-5 Mini | `gpt-5-mini` | Contract generation (primary) |
-| GPT-5 Nano | `gpt-5-nano` | Validation, quick checks |
-| GPT-5.1 | `gpt-5.1` | Complex contracts |
-
-**Endpoint**: `https://poly-ai-foundry.cognitiveservices.azure.com`
-**API Version**: `2025-01-01-preview`
+| File | Purpose |
+|------|---------|
+| `server/llm/azure-client.ts` | Azure OpenAI with tier-based models |
+| `server/scripts/transcript-to-contract.ts` | Main generation script |
+| `server/tsconfig.json` | TypeScript config for server |
+| `docs/contract_output/*` | Generated contract artifacts |
 
 ---
 
-## PostgreSQL
+## Next Steps
 
-| Field | Value |
-|-------|-------|
-| Host | `poly-alpa-postgresql.postgres.database.azure.com` |
-| Database | `sesap` |
-| User | `citus` |
-| SSL | Required |
-
----
-
-## Implementation Checklist
-
-- [ ] Create MCP server (`server/mcp-server.ts`)
-- [ ] Add Azure OpenAI client
-- [ ] Add PostgreSQL schema and client
-- [ ] Implement `create_contract` tool
-- [ ] Implement `get_contract` tool
-- [ ] Implement `validate_contract` tool  
-- [ ] Implement `list_contracts` tool
-- [ ] Connect frontend to MCP server
-- [ ] Test with Claude Desktop
-
----
-
-## Files to Create
-
-```
-sesap/
-├── server/
-│   ├── mcp-server.ts          # MCP server entry point
-│   ├── tools/
-│   │   ├── create-contract.ts  # Contract generation
-│   │   └── contract-crud.ts    # Get/List/Validate
-│   ├── llm/
-│   │   └── azure-openai.ts     # Azure OpenAI client
-│   ├── db/
-│   │   ├── schema.sql          # PostgreSQL schema
-│   │   └── client.ts           # PostgreSQL client
-│   └── accord/
-│       └── engine.ts           # Accord Project wrapper
-├── package.json                # Add server dependencies
-└── .env                        # Already configured ✓
-```
+1. **Phase 1.5**: Add Zod structured output for robust parsing
+2. **Phase 2**: Wrap in MCP server
+3. **Phase 3**: Connect to PostgreSQL
+4. **Phase 4**: Integrate with frontend playground

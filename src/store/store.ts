@@ -6,7 +6,6 @@ import { ModelManager } from "@accordproject/concerto-core";
 import { TemplateMarkInterpreter } from "@accordproject/template-engine";
 import { TemplateMarkTransformer } from "@accordproject/markdown-template";
 import { transform } from "@accordproject/markdown-transform";
-import { SAMPLES, Sample } from "../samples";
 import * as playground from "../samples/playground";
 import { decompress } from "../utils/compression/compression";
 
@@ -19,8 +18,8 @@ interface AppState {
   editorAgreementData: string;
   agreementHtml: string;
   error: string | undefined;
-  samples: Array<Sample>;
-  sampleName: string;
+  isGenerating: boolean;
+  generationProgress: string;
   backgroundColor: string;
   textColor: string;
   setTemplateMarkdown: (template: string) => Promise<void>;
@@ -31,7 +30,7 @@ interface AppState {
   setEditorAgreementData: (value: string) => void;
   rebuild: () => Promise<void>;
   init: () => Promise<void>;
-  loadSample: (name: string) => Promise<void>;
+  setContractArtifacts: (model: string, template: string, data: string) => Promise<void>;
   loadFromLink: (compressedData: string) => Promise<void>;
 }
 
@@ -347,7 +346,8 @@ const useAppStore = create<AppState>()(
       return {
         backgroundColor: initialTheme.backgroundColor,
         textColor: initialTheme.textColor,
-        sampleName: playground.NAME,
+        isGenerating: false,
+        generationProgress: "",
         templateMarkdown: playground.TEMPLATE,
         editorValue: playground.TEMPLATE,
         modelCto: playground.MODEL,
@@ -356,7 +356,6 @@ const useAppStore = create<AppState>()(
         editorAgreementData: JSON.stringify(playground.DATA, null, 2),
         agreementHtml: "",
         error: undefined,
-        samples: SAMPLES,
         init: async () => {
           const params = new URLSearchParams(window.location.search);
           const compressedData = params.get("data");
@@ -366,22 +365,18 @@ const useAppStore = create<AppState>()(
             await get().rebuild();
           }
         },
-        loadSample: async (name: string) => {
-          const sample = SAMPLES.find((s) => s.NAME === name);
-          if (sample) {
-            set(() => ({
-              sampleName: sample.NAME,
-              agreementHtml: undefined,
-              error: undefined,
-              templateMarkdown: sample.TEMPLATE,
-              editorValue: sample.TEMPLATE,
-              modelCto: sample.MODEL,
-              editorModelCto: sample.MODEL,
-              data: JSON.stringify(sample.DATA, null, 2),
-              editorAgreementData: JSON.stringify(sample.DATA, null, 2),
-            }));
-            await get().rebuild();
-          }
+        setContractArtifacts: async (model: string, template: string, dataJson: string) => {
+          set(() => ({
+            agreementHtml: "",
+            error: undefined,
+            templateMarkdown: template,
+            editorValue: template,
+            modelCto: model,
+            editorModelCto: model,
+            data: dataJson,
+            editorAgreementData: dataJson,
+          }));
+          await get().rebuild();
         },
         rebuild: async () => {
           const { templateMarkdown, modelCto, data } = get();

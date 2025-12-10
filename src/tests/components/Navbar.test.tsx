@@ -1,6 +1,13 @@
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { MemoryRouter } from "react-router-dom";
+import { vi } from "vitest";
+
+// Mock TranscriptUpload to avoid axios/antd issues in test environment
+vi.mock("../../components/TranscriptUpload", () => ({
+  default: () => null,
+}));
+
 import Navbar from "../../components/Navbar";
 
 const renderNavbar = (initialEntry = "/") => {

@@ -5,17 +5,25 @@
  * 1. GPT-5.1 (heavy) - Extract contract structure from transcript
  * 2. GPT-5-mini (medium) - Generate Accord artifacts (Model, Template, Data)
  * 3. GPT-5-nano (light) - Validate and polish
+ * 
+ * Uses Zod schemas for type-safe structured output
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-import { chat } from '../llm/azure-client';
+import { chat, chatStructured } from '../llm/azure-client';
+import { 
+  ContractStructureSchema, 
+  AccordArtifactsSchema, 
+  ValidationResultSchema,
+  type ContractStructure,
+  type AccordArtifacts,
+  type ValidationResult
+} from '../schemas/contract';
 
 // Load environment variables
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-
-// ==================== PROMPTS ====================
 
 const EXTRACT_STRUCTURE_PROMPT = `You are a legal contract analyst. Your job is to analyze meeting transcripts and extract the key information needed to draft a professional services contract.
 
@@ -132,43 +140,8 @@ Respond in JSON format:
 }`;
 
 // ==================== MAIN FUNCTION ====================
+// Types are imported from ../schemas/contract (Zod-inferred)
 
-interface ContractStructure {
-  parties: {
-    provider: { name: string; role: string; contacts: string[] };
-    intermediary: { name: string; role: string; contacts: string[] } | null;
-    client: { name: string; role: string; contacts: string[] };
-  };
-  engagementType: string[];
-  scopeOfWork: {
-    deliverables: string[];
-    phases: string[];
-  };
-  timeline: {
-    startDate: string | null;
-    duration: string;
-    milestones: string[];
-  };
-  commercialTerms: {
-    paymentTerms: string | null;
-    estimatedValue: string | null;
-    roiExpectation: string | null;
-  };
-  nextSteps: string[];
-  keyQuotes: string[];
-}
-
-interface AccordArtifacts {
-  concertoModel: string;
-  templateMark: string;
-  jsonData: Record<string, unknown>;
-}
-
-interface ValidationResult extends AccordArtifacts {
-  isValid: boolean;
-  issues: string[];
-  fixes: string[];
-}
 
 export async function transcriptToContract(
   transcriptPath: string,
@@ -177,6 +150,7 @@ export async function transcriptToContract(
   structure: ContractStructure;
   artifacts: AccordArtifacts;
   validation: ValidationResult;
+  html: string;
 }> {
   console.log('\n========================================');
   console.log('  TRANSCRIPT TO CONTRACT GENERATOR');
@@ -187,44 +161,44 @@ export async function transcriptToContract(
   const transcript = fs.readFileSync(transcriptPath, 'utf-8');
   console.log(`   Length: ${transcript.length} characters\n`);
 
-  // STEP 1: Extract structure with GPT-5.1 (heavy reasoning)
-  console.log('🧠 STEP 1: Extracting contract structure (GPT-5.1)...');
-  const structureJson = await chat(
+  // STEP 1: Extract structure with GPT-5.1 (heavy reasoning) + Zod schema
+  console.log('🧠 STEP 1: Extracting contract structure (GPT-5.1 + structured output)...');
+  const structure = await chatStructured(
     'heavy',
     EXTRACT_STRUCTURE_PROMPT,
     `Here is the meeting transcript:\n\n${transcript}`,
-    { responseFormat: 'json_object', maxTokens: 8192 }
+    ContractStructureSchema,
+    'ContractStructure',
+    { maxTokens: 16384 }  // Increased - reasoning models need tokens for thinking + output
   );
-  
-  const structure: ContractStructure = JSON.parse(structureJson);
   console.log(`   ✅ Extracted: ${structure.engagementType.join(', ')}`);
   console.log(`   Parties: ${structure.parties.provider.name} → ${structure.parties.client.name}\n`);
 
-  // STEP 2: Generate Accord artifacts with GPT-5-mini
-  console.log('⚙️  STEP 2: Generating Accord artifacts (GPT-5-mini)...');
-  const artifactsJson = await chat(
+  // STEP 2: Generate Accord artifacts with GPT-5-mini + Zod schema
+  console.log('⚙️  STEP 2: Generating Accord artifacts (GPT-5-mini + structured output)...');
+  const artifacts = await chatStructured(
     'medium',
     GENERATE_ACCORD_PROMPT,
     `Here is the extracted contract structure:\n\n${JSON.stringify(structure, null, 2)}`,
-    { responseFormat: 'json_object', maxTokens: 8192 }
+    AccordArtifactsSchema,
+    'AccordArtifacts',
+    { maxTokens: 32768 }  // Large - needs room for reasoning + full .cto, .tem.md, and JSON
   );
-
-  const artifacts: AccordArtifacts = JSON.parse(artifactsJson);
   console.log(`   ✅ Generated Model, Template, and Data\n`);
 
-  // STEP 3: Validate and polish with GPT-5-nano (optional - fallback to Step 2 if fails)
+  // STEP 3: Validate and polish with GPT-5-mini (upgraded from nano - nano runs out of tokens)
   let validation: ValidationResult;
   
   try {
-    console.log('✨ STEP 3: Validating and polishing (GPT-5-nano)...');
-    const validationJson = await chat(
-      'light',
+    console.log('✨ STEP 3: Validating and polishing (GPT-5-mini + structured output)...');
+    validation = await chatStructured(
+      'medium',  // Changed from 'light' - nano exhausts tokens on reasoning
       VALIDATE_POLISH_PROMPT,
       `Here are the generated Accord artifacts:\n\n${JSON.stringify(artifacts, null, 2)}`,
-      { responseFormat: 'json_object', maxTokens: 8192 }
+      ValidationResultSchema,
+      'ValidationResult',
+      { maxTokens: 16384 }  // Increased for larger output
     );
-
-    validation = JSON.parse(validationJson);
     console.log(`   Valid: ${validation.isValid}`);
     if (validation.issues.length > 0) {
       console.log(`   Issues: ${validation.issues.join(', ')}`);
@@ -269,7 +243,27 @@ export async function transcriptToContract(
   
   fs.writeFileSync(
     path.join(outDir, `${baseName}_data.json`),
-    JSON.stringify(validation.jsonData, null, 2)
+    // jsonData is now a JSON string, pretty-print it
+    // Sanitize control characters that LLMs sometimes output in JSON strings
+    (() => {
+      if (typeof validation.jsonData === 'string') {
+        // Replace literal control characters with escaped versions
+        const sanitized = validation.jsonData
+          .replace(/[\x00-\x1F\x7F]/g, (char) => {
+            const escapes: Record<string, string> = {
+              '\n': '\\n', '\r': '\\r', '\t': '\\t', '\b': '\\b', '\f': '\\f'
+            };
+            return escapes[char] || '';
+          });
+        try {
+          return JSON.stringify(JSON.parse(sanitized), null, 2);
+        } catch (e) {
+          console.warn('   ⚠️  JSON parse failed, saving raw string');
+          return sanitized;
+        }
+      }
+      return JSON.stringify(validation.jsonData, null, 2);
+    })()
   );
 
   console.log(`📁 Output saved to: ${outDir}`);
@@ -277,9 +271,49 @@ export async function transcriptToContract(
   console.log(`   - ${baseName}_model.cto`);
   console.log(`   - ${baseName}_template.tem.md`);
   console.log(`   - ${baseName}_data.json`);
+
+  // STEP 4: Render to HTML using Accord Engine (optional)
+  let html = '';
+  try {
+    console.log('\n📄 STEP 4: Rendering to HTML (Accord Engine)...');
+    const { renderToHtml } = await import('../accord/engine');
+    // Parse jsonData if it's a string (from structured output), with sanitization
+    let jsonDataObj: Record<string, unknown>;
+    if (typeof validation.jsonData === 'string') {
+      const sanitized = validation.jsonData.replace(/[\x00-\x1F\x7F]/g, (char) => {
+        const escapes: Record<string, string> = { '\n': '\\n', '\r': '\\r', '\t': '\\t' };
+        return escapes[char] || '';
+      });
+      jsonDataObj = JSON.parse(sanitized);
+    } else {
+      jsonDataObj = validation.jsonData as Record<string, unknown>;
+    }
+    const result = await renderToHtml(
+      validation.concertoModel,
+      validation.templateMark,
+      jsonDataObj
+    );
+    
+    if (result.success) {
+      html = result.html;
+      fs.writeFileSync(
+        path.join(outDir, `${baseName}_contract.html`),
+        html
+      );
+      console.log(`   ✅ HTML rendered and saved`);
+      console.log(`   - ${baseName}_contract.html`);
+    } else {
+      console.log(`   ⚠️  HTML render failed: ${result.error}`);
+      console.log('   (Artifacts saved, you can render manually in the playground)');
+    }
+  } catch (error) {
+    console.log(`   ⚠️  HTML render skipped: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.log('   (Artifacts saved, you can render manually in the playground)');
+  }
+
   console.log('\n========================================\n');
 
-  return { structure, artifacts, validation };
+  return { structure, artifacts, validation, html };
 }
 
 // ==================== CLI ====================

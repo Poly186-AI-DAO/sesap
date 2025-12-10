@@ -31,6 +31,14 @@ const viteConfig = defineViteConfig({
       '@accordproject/markdown-transform': '@accordproject/markdown-transform/index.js',
     },
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+    },
+  },
 });
 
 // https://vitest.dev/config/

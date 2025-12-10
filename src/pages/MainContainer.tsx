@@ -4,7 +4,6 @@ import TemplateModel from "../editors/editorsContainer/TemplateModel";
 import TemplateMarkdown from "../editors/editorsContainer/TemplateMarkdown";
 import useAppStore from "../store/store";
 import ProblemPanel from "../components/ProblemPanel";
-import SampleDropdown from "../components/SampleDropdown";
 import "../styles/pages/MainContainer.css";
 
 const MainContainer = () => {
@@ -26,10 +25,7 @@ const MainContainer = () => {
               <Panel minSize={20}>
                 <div className="main-container-editor-section tour-concerto-model">
                   <div className={`main-container-editor-header ${backgroundColor === '#ffffff' ? 'main-container-editor-header-light' : 'main-container-editor-header-dark'}`}>
-                    <div className="main-container-editor-header-left">
-                      <span>Concerto Model</span>
-                      <SampleDropdown />
-                    </div>
+                    <span>Concerto Model</span>
                   </div>
                   <div className="main-container-editor-content" style={{ backgroundColor }}>
                     <TemplateModel />
