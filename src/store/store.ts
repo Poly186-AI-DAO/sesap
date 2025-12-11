@@ -399,6 +399,8 @@ const useAppStore = create<AppState>()(
             set(() => ({
               error: formatError(error),
             }));
+            // Re-throw so callers (like setContractArtifacts) can catch and handle
+            throw error;
           }
         },
         setTemplateMarkdown: async (template: string) => {

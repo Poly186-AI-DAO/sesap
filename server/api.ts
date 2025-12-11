@@ -21,6 +21,30 @@ app.use(cors());
 app.use(express.json({ limit: '5mb' }));
 
 /**
+ * Recursively remove null and undefined values from an object
+ * Concerto/Accord expects optional fields to be OMITTED, not null
+ */
+function stripNullValues(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return undefined;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(stripNullValues).filter(item => item !== undefined);
+  }
+  if (typeof obj === 'object') {
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      const stripped = stripNullValues(value);
+      if (stripped !== undefined) {
+        result[key] = stripped;
+      }
+    }
+    return result;
+  }
+  return obj;
+}
+
+/**
  * POST /api/generate/contract
  * 
  * Generate Accord contract artifacts from a transcript
@@ -54,13 +78,23 @@ app.post('/api/generate/contract', async (req: Request, res: Response) => {
     // Clean up temp file
     fs.unlinkSync(tempFile);
 
-    // Return the artifacts
+    // Return the artifacts (strip null values from data for Concerto compatibility)
+    let cleanedData: string;
+    try {
+      const rawData = typeof result.validation.jsonData === 'string'
+        ? JSON.parse(result.validation.jsonData)
+        : result.validation.jsonData;
+      cleanedData = JSON.stringify(stripNullValues(rawData), null, 2);
+    } catch {
+      cleanedData = typeof result.validation.jsonData === 'string'
+        ? result.validation.jsonData
+        : JSON.stringify(result.validation.jsonData, null, 2);
+    }
+
     res.json({
       model: result.validation.concertoModel,
       template: result.validation.templateMark,
-      data: typeof result.validation.jsonData === 'string' 
-        ? result.validation.jsonData 
-        : JSON.stringify(result.validation.jsonData, null, 2),
+      data: cleanedData,
       html: result.html || '',
     });
   } catch (error) {

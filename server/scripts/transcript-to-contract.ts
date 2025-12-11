@@ -103,31 +103,97 @@ The contract should include:
 - Termination clause (brief)
 - Signatures section
 
+CRITICAL Concerto Model (.cto) Syntax Rules:
+- Namespace MUST include version: namespace org.accordproject.contract@1.0.0
+- The MAIN contract type MUST have @template decorator on line before it
+- Use "concept" for ALL data structures
+- ALL fields MUST start with 'o' followed by type: \`o String fieldName\`
+- Field types: String, Double, Integer, DateTime, Boolean
+- Optional fields: put "optional" at END of line: \`o String notes optional\`
+- Arrays use brackets: \`o String[] items\` - but ONLY at the TOP LEVEL (@template concept)
+- DO NOT put arrays inside nested concepts - use comma-separated strings instead
+
+IMPORTANT - FLAT STRUCTURE REQUIRED:
+- Keep the model SIMPLE and FLAT
+- Put arrays ONLY in the @template concept, NOT inside nested concepts
+- For things like activities/outputs, use a SINGLE STRING with items separated by commas
+- Example: Instead of \`o String[] activities\`, use \`o String activitiesSummary\` like "Design workshop, Create templates, Review materials"
+
+Example Model Structure:
+\`\`\`
+@template
+concept ContractData {
+  o String contractId
+  o Party provider
+  o Party client  
+  o String[] deliverables   // Array OK - it's at top level
+  o String paymentTerms
+}
+
+concept Party {
+  o String name
+  o String role
+  // NO arrays inside Party - keep it flat
+}
+\`\`\`
+
 Important rules for TemplateMark:
-- Use {{variableName}} for simple variables
+- Use {{variableName}} for simple variables 
 - Use {{#clause conceptName}} {{/clause}} for nested concepts
-- Use {{#if condition}} {{/if}} for conditionals
-- Use {{#ulist listName}} {{/ulist}} for lists
-- Keep it professional but readable
+- Use {{#ulist listName}} {{.}} {{/ulist}} for arrays of primitives AT TOP LEVEL ONLY
+- DO NOT nest {{#ulist}} inside {{#clause}} - this causes path resolution errors
+- Keep template SIMPLE and FLAT
+- Do NOT use {{#if}}, {{#optional}}, or {{#template}}
+
+CRITICAL JSON Data Rules:
+- EVERY object MUST have "$class": "org.accordproject.contract@1.0.0.TypeName"
+- The root object uses the @template concept: "$class": "org.accordproject.contract@1.0.0.ContractData"
+- Nested objects use their concept name: "$class": "org.accordproject.contract@1.0.0.Party"
+- Arrays of concepts: each item needs $class
+- Do NOT use null for optional fields - OMIT them entirely
+- DateTime values must be ISO 8601 format: "2025-01-15T00:00:00Z"
+
+Example JSON structure:
+{
+  "$class": "org.accordproject.contract@1.0.0.ContractData",
+  "contractId": "ABC-123",
+  "provider": {
+    "$class": "org.accordproject.contract@1.0.0.Party",
+    "name": "Acme Corp",
+    "role": "Provider"
+  }
+}
 
 Respond in JSON format:
 {
   "concertoModel": "namespace ... (full .cto content)",
   "templateMark": "# Contract Title... (full .tem.md content)",
-  "jsonData": { ... full JSON data ... }
+  "jsonData": { ... full JSON data with $class on every object ... }
 }`;
 
 const VALIDATE_POLISH_PROMPT = `You are a quality assurance specialist for Smart Legal Contracts.
 
 Review the generated Accord Project artifacts and:
-1. Check for any obvious errors or inconsistencies
-2. Ensure all variables in the template exist in the model
+1. CRITICAL: Ensure EVERY variable used in the template ({{variableName}}) exists in the model
+2. If a variable is used in template but NOT in model, either ADD it to the model or REMOVE it from template
 3. Ensure all required fields in the model have values in the JSON data
-4. Improve any awkward phrasing
-5. Add any missing standard clauses
+4. Only add new standard clauses if they use EXISTING variables - do NOT invent new variables
+5. Minor phrasing improvements are okay
 
 If everything looks good, return the artifacts unchanged.
 If there are issues, fix them and explain what you fixed.
+
+IMPORTANT RULES:
+- Do NOT add {{#template}} or {{/template}} wrappers
+- Do NOT add variables to template that don't exist in model
+- Every {{variable}} in template MUST have a corresponding field in the @template concept
+- EVERY object in jsonData MUST have "$class": "org.accordproject.contract@1.0.0.TypeName"
+- Do NOT use null values - OMIT optional fields entirely if not set
+- If you find null values, REMOVE them from the JSON
+- CRITICAL: REMOVE all {{#if}} and {{/if}} - TemplateMark does NOT support Handlebars conditionals
+- CRITICAL: REMOVE all {{#optional}} and {{/optional}} - just show the field directly
+- Replace patterns like "{{#if field}}...{{field}}...{{/if}}" with just "{{field}}" or remove the line entirely
+- When iterating with {{#ulist}}, access fields directly like {{name}} not {{#if name}}{{name}}{{/if}}
 
 Respond in JSON format:
 {
@@ -345,4 +411,7 @@ async function main() {
   }
 }
 
-main();
+// Only run main() when script is executed directly, not when imported as a module
+if (require.main === module) {
+  main();
+}
