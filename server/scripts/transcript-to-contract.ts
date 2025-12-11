@@ -139,11 +139,14 @@ concept Party {
 
 Important rules for TemplateMark:
 - Use {{variableName}} for simple variables 
-- Use {{#clause conceptName}} {{/clause}} for nested concepts
-- Use {{#ulist listName}} {{.}} {{/ulist}} for arrays of primitives AT TOP LEVEL ONLY
-- DO NOT nest {{#ulist}} inside {{#clause}} - this causes path resolution errors
+- Use {{#clause conceptName}} {{/clause}} for nested concepts (container block with closing tag)
+- For primitive String[] arrays, use {{#join arrayName}} - this is an INLINE block with NO closing tag
+  Example: "Your favorite colors are {{#join favoriteColors}}"
+  This renders as: "Your favorite colors are red, green, blue"
+  DO NOT add {{/join}} - join for primitives has no closing tag!
+- Do NOT use {{#ulist}} for String[] arrays - ulist requires arrays of concepts
 - Keep template SIMPLE and FLAT
-- Do NOT use {{#if}}, {{#optional}}, or {{#template}}
+- Do NOT use {{#if}}, {{#optional}}, {{#template}}, or {{.}}
 
 CRITICAL JSON Data Rules:
 - EVERY object MUST have "$class": "org.accordproject.contract@1.0.0.TypeName"
@@ -187,13 +190,18 @@ IMPORTANT RULES:
 - Do NOT add {{#template}} or {{/template}} wrappers
 - Do NOT add variables to template that don't exist in model
 - Every {{variable}} in template MUST have a corresponding field in the @template concept
+- CRITICAL: Every {{variable}} used in template MUST have a VALUE in jsonData - not just in model!
+  If template uses {{estimatedValue}}, jsonData MUST have "estimatedValue": "some value"
+  If a field is missing from jsonData, EITHER add a placeholder value OR remove it from template
 - EVERY object in jsonData MUST have "$class": "org.accordproject.contract@1.0.0.TypeName"
 - Do NOT use null values - OMIT optional fields entirely if not set
 - If you find null values, REMOVE them from the JSON
 - CRITICAL: REMOVE all {{#if}} and {{/if}} - TemplateMark does NOT support Handlebars conditionals
 - CRITICAL: REMOVE all {{#optional}} and {{/optional}} - just show the field directly
-- Replace patterns like "{{#if field}}...{{field}}...{{/if}}" with just "{{field}}" or remove the line entirely
-- When iterating with {{#ulist}}, access fields directly like {{name}} not {{#if name}}{{name}}{{/if}}
+- CRITICAL: For String[] arrays, use {{#join arrayName}} with NO closing tag - it's inline!
+  Correct: "Colors: {{#join colors}}"
+  Wrong: "Colors: {{#join colors separator=", "}}{{/join}}"
+- Do NOT use {{.}} anywhere - it's not valid TemplateMark syntax
 
 Respond in JSON format:
 {
