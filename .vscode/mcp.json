@@ -3,6 +3,19 @@
         "github": {
             "type": "http",
             "url": "https://api.githubcopilot.com/mcp/"
+        },
+        "sesap": {
+            "type": "stdio",
+            "command": "npx",
+            "args": ["tsx", "server/mcp/index.ts"],
+            "env": {
+                "AZURE_AI_FOUNDRY_BASE_URL": "${env:AZURE_AI_FOUNDRY_BASE_URL}",
+                "AZURE_AI_FOUNDRY_KEY": "${env:AZURE_AI_FOUNDRY_KEY}",
+                "AZURE_OPEN_AI_VERSION": "${env:AZURE_OPEN_AI_VERSION}",
+                "AZURE_GPT_5_1_DEPLOYMENT": "${env:AZURE_GPT_5_1_DEPLOYMENT}",
+                "AZURE_GPT_5_MINI_DEPLOYMENT": "${env:AZURE_GPT_5_MINI_DEPLOYMENT}",
+                "AZURE_GPT_5_NANO_DEPLOYMENT": "${env:AZURE_GPT_5_NANO_DEPLOYMENT}"
+            }
         }
     }
 }
