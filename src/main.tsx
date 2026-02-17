@@ -22,7 +22,7 @@ loader.init().then((monaco) => {
   monaco.languages.typescript.javascriptDefaults.setCompilerOptions(compilerOptions);
 });
 
-console.log("[DEBUG] main.tsx executing (no polyfills) - VERSION CHECK: CLEANED");
+
 
 // =============================================================================
 // CONSOLE NOISE SUPPRESSION
@@ -98,7 +98,6 @@ window.fetch = async (input, init) => {
 // FORCE CLEAR LOCAL STORAGE to fix "Previous layout not found" error
 try {
   localStorage.removeItem("react-resizable-panels:layout");
-  console.log("[DEBUG] Cleared react-resizable-panels layout from localStorage");
 } catch (e) {
   console.error("Failed to clear localStorage", e);
 }

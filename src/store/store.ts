@@ -99,11 +99,8 @@ function debounce<F extends (...args: any[]) => Promise<any>>(
 const rebuildDeBounce = debounce(rebuild, 500);
 
 async function rebuild(template: string, model: string, dataString: string) {
-  console.log("[DEBUG] rebuild started");
   const modelManager = new ModelManager({ strict: true });
-  console.log("[DEBUG] modelManager created");
   modelManager.addCTOModel(model, undefined, true);
-  console.log("[DEBUG] CTO model added");
   try {
     // Manually add the external model content to avoid network/loader issues
     const moneyModel = `namespace org.accordproject.money@0.3.0
@@ -295,14 +292,10 @@ async function rebuild(template: string, model: string, dataString: string) {
     }`;
 
     modelManager.addCTOModel(moneyModel, "money@0.3.0.cto", true);
-    console.log("[DEBUG] Manual money model added");
-
-    // await modelManager.updateExternalModels();
-    // console.log("[DEBUG] External models updated (SKIPPED)");
   } catch (e) {
     console.error(
-      "[DEBUG] Failed to update external models",
-      JSON.stringify(e, Object.getOwnPropertyNames(e))
+      "[Store] Failed to add money model:",
+      e instanceof Error ? e.message : e
     );
   }
   const engine = new TemplateMarkInterpreter(modelManager, {});
@@ -313,10 +306,8 @@ async function rebuild(template: string, model: string, dataString: string) {
     "contract",
     { verbose: false }
   );
-  console.log("[DEBUG] Template parsed");
   const data = JSON.parse(dataString);
   const ciceroMark = await engine.generate(templateMarkDom, data);
-  console.log("[DEBUG] CiceroMark generated");
   return await transform(
     ciceroMark.toJSON(),
     "ciceromark_parsed",
@@ -386,16 +377,10 @@ const useAppStore = create<AppState>()(
               modelCto,
               data
             );
-            if (isCancelation(result)) {
-              console.log("[DEBUG] Rebuild cancelled:", result.msg);
-              return;
-            }
+            if (isCancelation(result)) return;
             set(() => ({ agreementHtml: result as string, error: undefined }));
           } catch (error: any) {
-            console.error(
-              "[DEBUG] Rebuild error:",
-              JSON.stringify(error, Object.getOwnPropertyNames(error))
-            );
+            console.error("[Store] Rebuild error:", error instanceof Error ? error.message : error);
             set(() => ({
               error: formatError(error),
             }));
@@ -408,10 +393,7 @@ const useAppStore = create<AppState>()(
           const { modelCto, data } = get();
           try {
             const result = await rebuildDeBounce(template, modelCto, data);
-            if (isCancelation(result)) {
-              console.log("[DEBUG] Rebuild cancelled:", result.msg);
-              return;
-            }
+            if (isCancelation(result)) return;
             set(() => ({ agreementHtml: result as string, error: undefined }));
           } catch (error: any) {
             set(() => ({
@@ -427,10 +409,7 @@ const useAppStore = create<AppState>()(
           const { templateMarkdown, data } = get();
           try {
             const result = await rebuildDeBounce(templateMarkdown, model, data);
-            if (isCancelation(result)) {
-              console.log("[DEBUG] Rebuild cancelled:", result.msg);
-              return;
-            }
+            if (isCancelation(result)) return;
             set(() => ({ agreementHtml: result as string, error: undefined }));
           } catch (error: any) {
             set(() => ({
@@ -449,10 +428,7 @@ const useAppStore = create<AppState>()(
               get().modelCto,
               data
             );
-            if (isCancelation(result)) {
-              console.log("[DEBUG] Rebuild cancelled:", result.msg);
-              return;
-            }
+            if (isCancelation(result)) return;
             set(() => ({ agreementHtml: result as string, error: undefined }));
           } catch (error: any) {
             set(() => ({
