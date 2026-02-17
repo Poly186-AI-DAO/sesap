@@ -30,7 +30,11 @@ interface AppState {
   setEditorAgreementData: (value: string) => void;
   rebuild: () => Promise<void>;
   init: () => Promise<void>;
-  setContractArtifacts: (model: string, template: string, data: string) => Promise<void>;
+  setContractArtifacts: (
+    model: string,
+    template: string,
+    data: string,
+  ) => Promise<void>;
   loadFromLink: (compressedData: string) => Promise<void>;
 }
 
@@ -57,7 +61,7 @@ function isCancelation(result: unknown): result is CancelationResult {
 
 function debounce<F extends (...args: any[]) => Promise<any>>(
   func: F,
-  wait: number
+  wait: number,
 ) {
   let timeout: ReturnType<typeof setTimeout> | null = null;
   let resolvePrevious: ((value: CancelationResult) => void) | null = null;
@@ -295,7 +299,7 @@ async function rebuild(template: string, model: string, dataString: string) {
   } catch (e) {
     console.error(
       "[Store] Failed to add money model:",
-      e instanceof Error ? e.message : e
+      e instanceof Error ? e.message : e,
     );
   }
   const engine = new TemplateMarkInterpreter(modelManager, {});
@@ -304,7 +308,7 @@ async function rebuild(template: string, model: string, dataString: string) {
     { content: template },
     modelManager,
     "contract",
-    { verbose: false }
+    { verbose: false },
   );
   const data = JSON.parse(dataString);
   const ciceroMark = await engine.generate(templateMarkDom, data);
@@ -313,7 +317,7 @@ async function rebuild(template: string, model: string, dataString: string) {
     "ciceromark_parsed",
     ["html"],
     {},
-    { verbose: false }
+    { verbose: false },
   );
 }
 
@@ -356,7 +360,11 @@ const useAppStore = create<AppState>()(
             await get().rebuild();
           }
         },
-        setContractArtifacts: async (model: string, template: string, dataJson: string) => {
+        setContractArtifacts: async (
+          model: string,
+          template: string,
+          dataJson: string,
+        ) => {
           set(() => ({
             agreementHtml: "",
             error: undefined,
@@ -375,12 +383,15 @@ const useAppStore = create<AppState>()(
             const result = await rebuildDeBounce(
               templateMarkdown,
               modelCto,
-              data
+              data,
             );
             if (isCancelation(result)) return;
             set(() => ({ agreementHtml: result as string, error: undefined }));
           } catch (error: any) {
-            console.error("[Store] Rebuild error:", error instanceof Error ? error.message : error);
+            console.error(
+              "[Store] Rebuild error:",
+              error instanceof Error ? error.message : error,
+            );
             set(() => ({
               error: formatError(error),
             }));
@@ -426,7 +437,7 @@ const useAppStore = create<AppState>()(
             const result = await rebuildDeBounce(
               get().templateMarkdown,
               get().modelCto,
-              data
+              data,
             );
             if (isCancelation(result)) return;
             set(() => ({ agreementHtml: result as string, error: undefined }));
@@ -466,8 +477,8 @@ const useAppStore = create<AppState>()(
           }
         },
       };
-    })
-  )
+    }),
+  ),
 );
 
 export default useAppStore;

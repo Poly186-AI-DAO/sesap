@@ -7,7 +7,10 @@
         "sesap": {
             "type": "stdio",
             "command": "npx",
-            "args": ["tsx", "server/mcp/index.ts"],
+            "args": [
+                "tsx",
+                "server/mcp/index.ts"
+            ],
             "env": {
                 "AZURE_AI_FOUNDRY_BASE_URL": "${env:AZURE_AI_FOUNDRY_BASE_URL}",
                 "AZURE_AI_FOUNDRY_KEY": "${env:AZURE_AI_FOUNDRY_KEY}",
