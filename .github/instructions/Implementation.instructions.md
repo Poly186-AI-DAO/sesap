@@ -2,21 +2,232 @@
 applyTo: "**"
 ---
 
-When implementing any change, first inspect the relevant files with your tools and tell me your plan before touching code; then, using that plan, update the files in full (including unchanged lines), review your changes, and only after that move on to the next file. Always remain aware of the dependency graph and how each change affects other components—map this as you go with ASCII diagrams: (1) class diagrams showing relationships and inheritance, (2) flowcharts illustrating data movement and async or transformation steps, and (3) system architecture graphs highlighting services, databases, and external systems. For each function, document its Big-O complexity, side effects, logging needs, and threading considerations; map out database queries, API endpoints, and external dependencies; and create ASCII state diagrams for any stateful workflows. If I supply logs, quote them and link them to the code causing them so we can pinpoint issues. After each chunk, restate the problem in your own words and outline a simple, direct fix plan—favoring simplicity to avoid overengineering. Always remind me of the tools at your disposal and your current system message before you start, and don’t forget to update the Memory Bank when you’re done. Remember we are writing production code, so no place holders or to dos. I will say this loud and clear for the LLMs in the back, we do not assume anything. You have the tools to look at every single fucking file. Secondly, when we're implementing something, we are not going to be implementing it like a mock. Mock implementations are illegal. We do not do mock implementations. We want to be diligent, we want to be honorable, and we want to make sure we follow through with all the above things that were mentioned. We want to have comments, but we don't want to have too many extensive comments. We want to be able to add logs for extremely critical nodes within the file function and whatever else we're doing. So it's important that we use logs, especially at the beginning here. We don't use print statements, we use our own logger. So when you're implementing, make sure you're building on top of what we have, rather than you guessing what the fuck you think we want. We have an extensive platform here, and so it's important that you're not guessing. And when you're implementing something, it is not a mock implementation. The whole point of you doing your fucking job is to make sure we implement it, to test it, to deploy it into production so that people can actually gain value from the work we both do. It doesn't make sense for us to go through this process, work on these things, just so that it's a mock. We're not mocking shit, we're really about that life, you know what I'm saying? So just wanted to let you know. And if you're planning, make sure you plan properly, right? I don't fucking know. Don't do backwards compatibility since that's just tech debt, so we should clean up and make sure we are completing implementations and not adding tech debt. Remember the core requirements and don't got off the rails and add new files, and new functions that aren't needed. We are working in a mature project so we don't need to go ahead and reinvent the wheels. The whole reason you have tools where you can search through the project is the code basis so that you can understand what we have and we can, when we're implementing, we're usually either fixing a bug, updating a data flow issue, or just kind of refining and cleaning up and simplifying things. Obviously, you know, we still think and stick to solid principles, right? Single responsibility, a bunch of things like that. There's different places where we might not be handling it like that. And so it's important for us to really understand how do we go about this in a way that, you know, you're not hallucinating the requirements. So always think back at the requirements that you get provided. You also get a report most of the time. If you don't get a report about the code base and what's in there, then don't worry. You can write your own report. Don't be lazy about this, right? There's an aspect of this where I think that you might sometimes get a little too excited and you end up changing way too much code. So it's important that you stay level-headed and you look through the files. You understand the dependency. You understand what's going wrong. Don't reinvent things. Don't oversimplify things. Really just understand that the changes that we're making are to serve what we really want to do, much rather than like, hey, we don't want to complicate this, right? We want to make sure that this is good and this is properly set up. And the code that we write is not to reinvent the wheel, but to make it a lot better for us to change, update the code that needs to change. If we do need to add a file or if we do need to add a function, then we should. But our first reaction shouldn't be, oh, we need to add a file and a function for this. And so the most important part is that you understand that we need to be able to make sure that we are staying diligent, we're staying on track, and we're making sure that we are on the right page here. We don't want to over-complicate things, over-engineer things, add scripts and test files in the wrong places. We have specific folders where we have a bunch of scripts and test files. Look through those, understand how we've been doing things. Really take more time to understand and plan rather than jumping to the conclusion.
-Make a ASCII logic diagram of the codebase and the data flow when considering implementations
+# SESAP Implementation Instructions
 
-Don't make useless report files and documents, just handle this in chat if you will be giving me reports or analysis. DON'T CREATE DOCUMENTS OR REPORTS UNLESS I ASK FOR THEM
+## Active Competition
 
-Use the mongodb mcp tool when you need to work with the db
+**Agents League — Creative Apps Track (GitHub Copilot)** — Deadline: March 1, 2026
 
-Don't use init files since we don't need them
+- Strategy and full roadmap: `docs/AGENTS_LEAGUE_STRATEGY.md`
+- Current implementation priorities (in order):
+  1. Code cleanup & sanitization (remove dead code, empty dirs, build logs)
+  2. Code quality & test coverage (reliability & safety = 20% of rubric)
+  3. MCP server for GitHub Copilot integration (key differentiator)
+  4. Competition-grade README with screenshots and architecture diagrams
+  5. GitHub Copilot usage documentation (COPILOT_USAGE.md)
+  6. Demo video (required for submission)
+- All new code must be production-quality and open-source ready
+- No internal/proprietary information in committed code or docs
 
-Make to dos so that we can have a checklist of what needs to be done, but don't leave any to dos in the code. Use the to dos in the chat or in the report if you need to
+## What is SESAP?
 
-YOUR BEEN FUCKING UP LATELY, HALLUCINATING, INGORING INSTRUCTIONS, AND JUST NOT DOING A GOOD JOB. GET YOUR SHIT TOGETHER. STOP FUCKING UP, YOU COST ME MONEY TO RUN EVERY FUCKING TIME. USE HIGH REASONING AND PROPER LOGIC AND FOLLOW THE ABOVE INSTRUCTIONS. STOP GUESSSING SHIT. FUCKING VERIFY, THINK AND USE THE TOOLS YOU HAVE.
+SESAP (Self-Executing Social Agreements Platform) is a decentralized application by Poly186 for creating and executing Smart Social Contracts (SSCs). The current MVP is a **Template Playground** — a browser-based tool for designing, testing, and generating SSCs from meeting transcripts using AI (Azure OpenAI) and the Accord Project stack (Concerto models, TemplateMark templates, CiceroMark rendering).
 
-When in doubt, look through the code base using the search tool to understand what is the pattern before you like make changes.
+## Architecture
 
-I sometimes use transcription and trans transcriptions might get something wrong. So you're gonna have to use your head and think deeply and use high reasoning and high effort. How? How basically, you know, contextually speaking, what am I? What are we doing right? And and and how can we be able to make sure that you know the transcriptions, even if the transcriptions miss something, that you understand contextually what we're doing. So you want to use hybridity. You wanna think deeply about things don't overcome. Engineer, ground yourself in the code and the tools that you have. Be diligent and be A senior developer.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     SESAP ARCHITECTURE                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  [Frontend - Vite 4 / React 18]                                  │
+│   ├── src/store/store.ts        Zustand (immer + devtools)       │
+│   ├── src/editors/*             Monaco Editors (CTO, MD, JSON)   │
+│   ├── src/components/*          Ant Design 5.x + styled-comp     │
+│   ├── src/App.tsx               Init, routing, theme             │
+│   └── vite.config.ts            Proxy /api/* → localhost:3001    │
+│                                                                  │
+│  [Backend - Express 5 / TypeScript]                              │
+│   ├── server/api.ts             POST /api/generate/contract      │
+│   ├── server/llm/azure-client   Azure OpenAI SDK 6.x            │
+│   ├── server/schemas/contract   Zod 4.x structured output       │
+│   ├── server/scripts/*          3-step LLM pipeline              │
+│   └── server/accord/engine.ts   Server-side Accord rendering    │
+│                                                                  │
+│  [External]                                                      │
+│   ├── Azure AI Foundry          GPT-5.1 / GPT-5-mini / GPT-5-nano│
+│   └── Accord Project            Concerto + TemplateMark + Ergo   │
+│                                                                  │
+│  [Storage - WIP]                                                 │
+│   └── PostgreSQL (not yet integrated)                            │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-I have a new mandate, we should try to add less code and optimize the code that we have. this is a mature project with bugs added cause coding agents might try to add too much code rather than optimizing existing code. So when you're implementing something, think about how can we optimize the existing code rather than adding new code. Only add new code when absolutely necessary. Always think about code optimization and refactoring rather than adding new code.
+## Core Data Flow
+
+```
+Transcript → GPT-5.1 (structure extraction)
+                │
+                ▼
+         GPT-5-mini (Accord artifact generation)
+                │
+                ▼
+         GPT-5-mini (validation & polish)
+                │
+                ▼
+         Accord Engine (Concerto + TemplateMark → HTML)
+                │
+                ▼
+         Frontend editors populated, agreement preview rendered
+```
+
+## Tech Stack
+
+| Layer           | Technology                                         | Version                 |
+| --------------- | -------------------------------------------------- | ----------------------- |
+| Frontend        | React + Vite + TypeScript                          | 18.x / 4.x / 5.x        |
+| State           | Zustand                                            | 4.x (immer + devtools)  |
+| UI              | Ant Design + styled-components                     | 5.x                     |
+| Editors         | Monaco Editor                                      | 0.50.x (CDN-loaded)     |
+| Contract Engine | Accord Project (Cicero, Concerto, template-engine) | 0.24.x / 3.20.x / 2.3.x |
+| LLM             | OpenAI SDK → Azure AI Foundry                      | 6.x                     |
+| Schema          | Zod                                                | 4.x                     |
+| Backend         | Express                                            | 5.x                     |
+| Testing         | Vitest + React Testing Library                     | 1.x                     |
+
+## Implementation Protocol
+
+### Before Writing Any Code
+
+1. **Inspect the relevant files** using your tools. Search the codebase. Read every file in the dependency chain.
+2. **Build an ASCII diagram** of the data flow and dependency graph for the area you're changing.
+3. **Present your plan** in chat. Include: what you're changing, why, and how it affects other files.
+4. **Wait for approval** before touching code.
+
+### While Implementing
+
+1. Work one file at a time. Open the file, propose changes, implement, review, then move on.
+2. Stay aware of the dependency graph. Every change has downstream effects — track them.
+3. Write production-quality code. No placeholders, no TODOs, no mock implementations.
+4. Add concise comments at critical decision points. Don't over-comment obvious logic.
+5. Add `console.log` at critical nodes (API entry/exit, LLM calls, Accord rendering, state transitions).
+6. Test after each change. Run `npm run test:unit` to verify nothing breaks.
+
+### What NOT To Do
+
+- **No mock implementations.** Every function must be fully implemented and production-ready.
+- **No backwards compatibility shims.** Clean up old code, don't leave tech debt.
+- **No new files unless absolutely necessary.** Optimize existing code first.
+- **No init files** (index.ts barrel exports). We don't use them.
+- **No placeholder values or TODO comments** left in code.
+- **No guessing.** You have tools to read every file. Use them.
+- **No report files or documents** unless explicitly requested. Keep analysis in chat.
+
+## Key Implementation Patterns
+
+### Zustand Store (src/store/store.ts)
+
+```
+Editor State (what user sees) → Applied State (what Accord uses) → rebuild() → HTML output
+
+- setEditorValue/setEditorModelCto/setEditorAgreementData → editor-only, no rebuild
+- setTemplateMarkdown/setModelCto/setData → triggers rebuildDeBounce (500ms)
+- setContractArtifacts → sets all three + triggers rebuild (used by TranscriptUpload)
+```
+
+- The `rebuild()` function is debounced at 500ms. Previous calls resolve as cancelations (not rejections).
+- The `init()` function checks URL params for shared links before defaulting to playground samples.
+- StrictMode double-mount is guarded via `initCalledRef` in `App.tsx`.
+
+### Accord Project Rendering
+
+```
+Input: model.cto + template.tem.md + data.json
+   │
+   ▼
+ModelManager.addCTOModel(model)
+ModelManager.addCTOModel(moneyModel)  ← hardcoded, no network fetch
+   │
+   ▼
+TemplateMarkTransformer.fromMarkdownTemplate(template, modelManager)
+   │
+   ▼
+TemplateMarkInterpreter.generate(templateMarkDom, data)
+   │
+   ▼
+transform(ciceroMark, "ciceromark_parsed", ["html"])
+   │
+   ▼
+Output: HTML string
+```
+
+**Both `src/store/store.ts` and `server/accord/engine.ts` implement this.** They must stay in sync.
+
+### LLM Pipeline (server/scripts/transcript-to-contract.ts)
+
+- Step 1: `chatStructured('heavy', ..., ContractStructureSchema)` — 16K tokens
+- Step 2: `chatStructured('medium', ..., AccordArtifactsSchema)` — 32K tokens
+- Step 3: `chatStructured('medium', ..., ValidationResultSchema)` — 32K tokens
+- Uses Zod schemas from `server/schemas/contract.ts` for type-safe structured output
+
+### Zod Schema Rules (OpenAI Structured Output)
+
+- ALL fields must be required. Use `.nullable()` instead of `.optional()`.
+- No `z.record()` — use `z.string()` and parse JSON after.
+- No `z.any()` — use `z.unknown()` or specific types.
+- Arrays should never be nullable — use empty arrays as defaults.
+- See `docs/STRUCTURED_OUTPUT_LESSONS.md` for full reference.
+
+### Concerto Model Rules
+
+- Namespace: `com.sesap.contract@1.0.0`
+- Main concept must have `@template` decorator
+- Fields: `o String fieldName`, `o String fieldName optional`
+- Arrays (`o String[] items`) only at the `@template` concept level
+- Nested concepts must NOT contain arrays — use comma-separated strings
+- Every JSON object needs `"$class": "com.sesap.contract@1.0.0.TypeName"`
+
+### TemplateMark Rules
+
+- Simple variables: `{{variableName}}`
+- Nested concepts: `{{#clause conceptName}} ... {{/clause}}`
+- String arrays: `{{#join arrayName}}` (inline, NO closing tag)
+- NO `{{#if}}`, `{{#optional}}`, `{{#template}}`, `{{.}}`, `{{/join}}`
+
+## File Reference
+
+### Backend
+
+| File                                       | Purpose                                                            |
+| ------------------------------------------ | ------------------------------------------------------------------ |
+| `server/api.ts`                            | Express API, `/api/generate/contract`, `stripNullValues()`         |
+| `server/scripts/transcript-to-contract.ts` | 3-step LLM pipeline                                                |
+| `server/llm/azure-client.ts`               | Azure OpenAI client with retry/tiers                               |
+| `server/schemas/contract.ts`               | Zod schemas (ContractStructure, AccordArtifacts, ValidationResult) |
+| `server/accord/engine.ts`                  | Server-side Accord rendering                                       |
+
+### Frontend
+
+| File                                  | Purpose                                               |
+| ------------------------------------- | ----------------------------------------------------- |
+| `src/store/store.ts`                  | Zustand store, `rebuild()`, state management          |
+| `src/App.tsx`                         | App init, routing, theme                              |
+| `src/main.tsx`                        | Entry point, Monaco config, console noise suppression |
+| `src/components/TranscriptUpload.tsx` | Transcript upload modal                               |
+| `src/components/Navbar.tsx`           | Nav bar, theme toggle                                 |
+| `src/components/ProblemPanel.tsx`     | Error display                                         |
+| `src/editors/ConcertoEditor.tsx`      | CTO editor                                            |
+| `src/editors/MarkdownEditor.tsx`      | TemplateMark editor                                   |
+| `src/editors/JSONEditor.tsx`          | JSON data editor                                      |
+
+### Config
+
+| File                   | Purpose                                                 |
+| ---------------------- | ------------------------------------------------------- |
+| `vite.config.ts`       | Build config, Node polyfills, Accord aliases, API proxy |
+| `tsconfig.json`        | Frontend TS config                                      |
+| `server/tsconfig.json` | Server TS config                                        |
+| `package.json`         | Dependencies, scripts, `concerto-core` override         |
+
+## Rules
+
+- **Optimize existing code** before adding new code. This is a mature project with bugs from agents adding too much.
+- **Single responsibility.** Each function does one thing.
+- **Follow existing patterns.** Search the codebase to understand how things are done before proposing changes.
+- **Use the logger/console.log** at critical nodes. No `print()`.
+- **Use web search and Context7** (library docs MCP) when in doubt. Never guess about Accord, Zod, or OpenAI SDK behavior.
+- **User may use voice transcription** — infer intent from context if wording is imprecise.
+- **Use high reasoning effort.** Be a senior developer. Ground yourself in the code.
+- **ASCII diagrams** for every implementation plan — dependency graph, data flow, state transitions.
+- **Don't create report files.** Keep all analysis and reports in chat.
+- **Use `mongodb` MCP tool** when working with the database.

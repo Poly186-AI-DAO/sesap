@@ -1,80 +1,32 @@
-namespace org.accord.poc
+namespace com.sesap.contract@1.0.0
 
-concept SmartContract {
-  o String contractTitle
-  o Parties parties
-  o String[] engagementType
-  o ScopeOfWork scopeOfWork
-  o Timeline timeline
-  o CommercialTerms commercialTerms
-  o NextStep[] nextSteps
-  o String[] nextStepsSummaries optional
-  o String[] keyQuotes
-  o Signature[] signatures
-}
-
-concept Parties {
+@template
+concept ContractData {
+  o String contractId
+  o DateTime effectiveDate optional
   o Party provider
   o Party intermediary optional
   o Party client
+  o String[] engagementType
+  o String[] scopeDeliverables
+  o String[] phases
+  o String timelineDuration
+  o String[] milestones
+  o String paymentTerms
+  o String estimatedValue optional
+  o String roiExpectation
+  o String[] nextSteps
+  o String[] keyQuotes
+  o String providerSignatureName
+  o String clientSignatureName
+  o DateTime providerSignatureDate optional
+  o DateTime clientSignatureDate optional
+  o String notes optional
 }
 
 concept Party {
   o String name
   o String role
-  o Contact[] contacts optional
-  o String[] contactsDisplay optional
-}
-
-concept Contact {
-  o String name
-  o String role optional
-  o String notes optional
-}
-
-concept ScopeOfWork {
-  o String[] deliverables
-  o Phase[] phases
-  o String[] phaseSummaries optional
-}
-
-concept Phase {
-  o String name
-  o String description
-  o String[] activities
-  o String[] dependencies optional
-  o String[] outputs optional
-}
-
-concept Timeline {
-  o String startDate optional
-  o String duration optional
-  o Milestone[] milestones
-  o String[] milestonesSummaries optional
-}
-
-concept Milestone {
-  o String name
-  o String targetDate optional
-  o String details optional
-}
-
-concept CommercialTerms {
-  o String paymentTerms
-  o String estimatedValue optional
-  o String roiExpectation optional
-}
-
-concept NextStep {
-  o String owner
-  o String action
-  o String status optional
-  o String source optional
-}
-
-concept Signature {
-  o String signerName
-  o String role
-  o String date optional
-  o String signature optional
+  o String contactSummary optional
+  o String contactNotes optional
 }

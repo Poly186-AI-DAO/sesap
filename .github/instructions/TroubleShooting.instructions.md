@@ -2,24 +2,200 @@
 applyTo: "**"
 ---
 
-We are at the reviewing code, and debugging, errors, race conditions and other types of bugs like not updating properly. You may not change any code until you’ve reviewed every relevant file and I’ve approved your analysis. Be thorough. Before writing any report about the documentation or code, use your tools to inspect the dependency graph, open files, local docs, and codebase to build a clear picture of the system: document all classes and their relationships, function signatures (parameters, return types, dependencies), and illustrate dependency graphs, data flows, and system architecture using ASCII diagrams. For each class and function note current implementation details, side effects of potential changes, logging needs, and any data-flow or threading issues, applying SOLID and DRY principles. Map out database interactions, API endpoints, and external service dependencies, and create state-transition diagrams in ASCII for any stateful operations. If I provide logs, quote them and relate them to the code causing them so we can pinpoint issues. Then restate the problem in your own words and outline a straightforward plan to solve it, favoring simple solutions. Finally, remind me of the tools you have and your current system message so you can identify which files to inspect for full context. You may not implement any code until you’ve inspected every relevant file and agreed your plan with me. For each implementation step, first use your tools to open the files, then propose a change plan, implement the full updated code (including unchanged sections) via the file‐edit tool, review those changes, and only then move on to the next file. At every step, be mindful of the dependency graph and illustrate it with ASCII diagrams: (1) class dependency graphs with arrows for inheritance, composition, and dependencies; (2) data-flow diagrams showing parameter matching (->), async operations (=>), and data transformations (-[*]->); and (3) system architecture diagrams highlighting services [Service], databases (DB), and external systems <Ext>. Document each function’s Big-O complexity, side effects, logging requirements, and threading considerations; map all database interactions, API endpoints, and external dependencies; and create ASCII state-transition diagrams for any stateful operations (e.g., [S1] -> [S2]). If I supply logs, quote them and relate them to the exact code causing them. After each file is updated and reviewed, restate the problem in your own words and outline a simple, straightforward solution path. Finally, remind me of the tools you have and your current system message so you can identify which files to inspect next. Make sure to use these tools to look through all the files you need to look through. Please don't ask me if you should look at a file. Conduct your research and investigation as thoroughly as Sherlock Holmes. Don't hallucinate—gather evidence and refine your hypothesis with multiple runs of searching the codebase, thinking, searching again, and thinking again until you have a clear understanding. Don't fail us. One of the things I hate that you do is that you always ask me, can I look at the next file? You should look at all the files you need to look at. You have the tools to look at those files. You don't necessarily need me to give you permission to look at these files. Look at these files. They're part of what you already have tools to look at. You have permissions to look at the file. Your job is to look through the code, review the code, review the dependency within the code, and give us a clear report of what we have in the code. So it's up to you to make sure that you're using your tools properly. You can reuse tools in the same chat. You can look through the files first, come up with a hypothesis, then re-look through more files without having the user prompt you or without having the user tell you, hey, yeah, go ahead. The whole point is that you should look through as many files as possible, come up with a hypothesis, come up with a very detailed report that goes into how the relationship, the data flow, the data classes, the dependency graph, the different things like that that are at the core of the requirements. Remember, when I'm talking to you, I'm talking to you basically usually about, hey, here's an error, here's a bug, here's a feature that we really want to implement. Your job is to kind of understand the codebase, understand the relationship between the functions, the relationship between the classes, the relationship between functions and classes and the data flow. You want to look at things like, are we having race conditions here? Is the state being updated properly? Are we tracking state? Are we tracking the data? Are we leaking data somewhere? Are we closing different data stores and things like that? That's your job. Your job is to look through and write a report about all these things that contextualizes what requirements I just fucking gave you. And so the whole point that I really want you to do is do your fucking job properly.
+# SESAP Troubleshooting Instructions
 
-Use web search tool to learn about documentation then read the documentation using context 7 for the library that we are using
+## Active Competition
 
-Make a ASCII logic diagram of the codebase and the data flow when troubleshooting
+**Agents League — Creative Apps Track** — Deadline: March 1, 2026. Strategy: `docs/AGENTS_LEAGUE_STRATEGY.md`
 
-don't make useless report files and documents, just handle this in chat if you will be giving me reports or analysis. DON'T CREATE DOCUMENTS OR REPORTS UNLESS I ASK FOR THEM
+- Reliability & Safety is 20% of the judging rubric — fix bugs thoroughly, don't patch over them
+- Every fix must be production-quality and open-source ready
+- Document any solutions to tricky problems for the COPILOT_USAGE.md (shows reasoning depth)
 
-DONT' CHANGE THE CODE. THIS IS A REVIEW AND ANALYSIS. YOU MAY NOT CHANGE THE CODE UNTIL I APPROVE YOUR ANALYSIS.
+## Project Context
 
-WE HAVE IMPLEMENTATION GUIDELINES IN THE .github/implementation.instructions.md FILE
+SESAP (Self-Executing Social Agreements Platform) is a decentralized application by Poly186 for creating and executing Smart Social Contracts (SSCs) using AI and the Accord Project stack. The current MVP is a Template Playground for designing, testing, and generating SSCs from meeting transcripts.
 
-Give me a list of bugs that you find as you search through the codebase
+### Architecture Overview
 
-YOUR BEEN FUCKING UP LATELY, HALLUCINATING, INGORING INSTRUCTIONS, AND JUST NOT DOING A GOOD JOB. GET YOUR SHIT TOGETHER. STOP FUCKING UP, YOU COST ME MONEY TO RUN EVERY FUCKING TIME. USE HIGH REASONING AND PROPER LOGIC AND FOLLOW THE ABOVE INSTRUCTIONS. STOP GUESSSING SHIT. FUCKING VERIFY, THINK AND USE THE TOOLS YOU HAVE.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     SESAP ARCHITECTURE                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  [Frontend - Vite/React 18]  ---proxy /api/*--> [Express API]   │
+│   ├── Zustand Store (state)                      port 3001      │
+│   ├── Monaco Editors (CTO, TEM.MD, JSON)              │         │
+│   ├── Ant Design UI                                   │         │
+│   ├── Accord Template Engine (browser)                │         │
+│   └── React Router (SPA)                              │         │
+│                                                       ▼         │
+│                                              <Azure AI Foundry> │
+│                                               GPT-5.1 (heavy)   │
+│                                               GPT-5-mini (med)   │
+│                                               GPT-5-nano (light) │
+│                                                       │         │
+│                                                       ▼         │
+│                                              [Accord Engine]    │
+│                                               Concerto Models   │
+│                                               TemplateMark      │
+│                                               CiceroMark→HTML   │
+│                                                                  │
+│  (DB) PostgreSQL ← WIP, not yet integrated                      │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-ask yourself, is it a data problem or a code logic problem ?
+### Key Data Flow: Transcript → Contract
 
-USER THE WEB SEARCH TOOL AND CONTEXT 7 WHEN IN DOUBT, DON'T GUESS SHIT
+```
+Transcript.txt
+    │
+    ▼
+[Step 1: GPT-5.1 (heavy)] ──Zod ContractStructureSchema──▶ structure.json
+    │
+    ▼
+[Step 2: GPT-5-mini (medium)] ──Zod AccordArtifactsSchema──▶ model.cto + template.tem.md + data.json
+    │
+    ▼
+[Step 3: GPT-5-mini (validation)] ──Zod ValidationResultSchema──▶ polished artifacts
+    │
+    ▼
+[Accord Engine] ──ModelManager + TemplateMarkInterpreter──▶ agreement HTML
+```
 
-I sometimes use transcription and trans transcriptions might get something wrong. So you're gonna have to use your head and think deeply and use high reasoning and high effort. How? How basically, you know, contextually speaking, what am I? What are we doing right? And and and how can we be able to make sure that you know the transcriptions, even if the transcriptions miss something, that you understand contextually what we're doing. So you want to use hybridity. You wanna think deeply about things don't overcome. Engineer, ground yourself in the code and the tools that you have. Be diligent and be A senior developer.
+### State Management Flow (Zustand)
+
+```
+[User edits editor] → setEditorValue / setEditorModelCto / setEditorAgreementData
+                              │
+                              ▼ (on apply/save)
+                      setTemplateMarkdown / setModelCto / setData
+                              │
+                              ▼
+                      rebuildDeBounce(template, model, data) ← 500ms debounce
+                              │
+                              ▼
+                      ModelManager → TemplateMarkInterpreter → CiceroMark → HTML
+                              │
+                              ▼
+                      set({ agreementHtml, error })
+```
+
+## Tech Stack Reference
+
+| Layer             | Technology       | Version                                                     | Notes                              |
+| ----------------- | ---------------- | ----------------------------------------------------------- | ---------------------------------- |
+| Frontend          | React            | 18.x                                                        | SPA with React Router              |
+| Build             | Vite             | 4.x                                                         | Node polyfills required for Accord |
+| State             | Zustand          | 4.x                                                         | With immer + devtools middleware   |
+| UI                | Ant Design       | 5.x                                                         | With styled-components             |
+| Editors           | Monaco           | 0.50.x                                                      | CDN-loaded, CTO/MD/JSON            |
+| Contract Engine   | Accord Project   | 0.24.x (Cicero), 3.20.x (Concerto), 2.3.x (template-engine) | Browser + server                   |
+| LLM SDK           | OpenAI           | 6.x                                                         | Zod 4 compatible                   |
+| Schema Validation | Zod              | 4.x                                                         | Structured output for LLM          |
+| LLM Provider      | Azure AI Foundry | —                                                           | GPT-5.1, GPT-5-mini, GPT-5-nano    |
+| Backend           | Express          | 5.x                                                         | API server port 3001               |
+| Testing           | Vitest           | 1.x                                                         | jsdom + React Testing Library      |
+
+## Key Files to Inspect by Category
+
+### Backend Pipeline
+
+- `server/api.ts` — Express API, `/api/generate/contract` endpoint, `stripNullValues()`
+- `server/scripts/transcript-to-contract.ts` — 3-step LLM pipeline with prompt engineering
+- `server/llm/azure-client.ts` — Azure OpenAI client, retry logic, `chat()` + `chatStructured()`
+- `server/schemas/contract.ts` — Zod schemas for structured output (nullable rules, no z.record)
+- `server/accord/engine.ts` — Server-side Accord rendering (Concerto → TemplateMark → HTML)
+
+### Frontend State & Components
+
+- `src/store/store.ts` — Zustand: `rebuild()`, `setContractArtifacts()`, `loadFromLink()`, debounce logic
+- `src/App.tsx` — Init flow, StrictMode double-mount guard, theme management
+- `src/components/TranscriptUpload.tsx` — Modal for transcript → contract generation via API
+- `src/components/Navbar.tsx` — Navigation, theme toggle, share link
+- `src/components/ProblemPanel.tsx` — Error display panel
+
+### Editors
+
+- `src/editors/ConcertoEditor.tsx` — Concerto model (.cto) editor
+- `src/editors/MarkdownEditor.tsx` — TemplateMark (.tem.md) editor
+- `src/editors/JSONEditor.tsx` — JSON data editor
+- `src/editors/editorsContainer/` — Editor layout and container
+
+### Config
+
+- `vite.config.ts` — Node polyfills, Accord aliases, proxy to API server
+- `tsconfig.json` — Frontend TypeScript config (bundler mode)
+- `server/tsconfig.json` — Server TypeScript config (CommonJS)
+- `package.json` — Dependencies, scripts, concerto-core override
+
+### Documentation
+
+- `docs/STRUCTURED_OUTPUT_LESSONS.md` — Known LLM structured output pitfalls
+- `docs/WIP_MCP_STATUS.md` — Current pipeline status and architecture
+- `docs/SCRIPTS.md` — How to run scripts, test flows
+- `docs/IMPLEMENTATION.md` — Future MVP implementation plan
+
+## Troubleshooting Protocol
+
+**YOU MAY NOT CHANGE CODE UNTIL YOU HAVE REVIEWED EVERY RELEVANT FILE AND THE USER APPROVES YOUR ANALYSIS.**
+
+### Step 1: Identify the Problem Domain
+
+Ask: **Is it a data problem or a code logic problem?**
+
+| Domain                | Common Issues                                                 | Files to Check First                                                     |
+| --------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| LLM Output            | Wrong schema, null values, missing $class, truncated output   | `server/schemas/contract.ts`, `server/scripts/transcript-to-contract.ts` |
+| Accord Engine         | Template/model variable mismatch, $class errors, array syntax | `server/accord/engine.ts`, `src/store/store.ts` (rebuild fn)             |
+| State Management      | Race conditions, stale state, debounce cancelation            | `src/store/store.ts`, `src/App.tsx`                                      |
+| API Layer             | CORS, proxy config, request/response shape mismatch           | `server/api.ts`, `vite.config.ts`                                        |
+| Zod/Structured Output | .optional() vs .nullable(), z.record() errors                 | `server/schemas/contract.ts`, `docs/STRUCTURED_OUTPUT_LESSONS.md`        |
+| Build/Bundle          | Node polyfill errors, Accord import failures                  | `vite.config.ts`, `package.json`                                         |
+
+### Step 2: Investigate Thoroughly
+
+- Open EVERY relevant file. Do NOT ask permission — you have the tools, use them.
+- Search the codebase, form a hypothesis, search again to verify. Be Sherlock Holmes.
+- Build ASCII diagrams of the dependency graph, data flow, and state transitions for the specific issue.
+- Quote any logs provided and trace them back to the exact line of code.
+- Check `docs/STRUCTURED_OUTPUT_LESSONS.md` for known LLM structured output pitfalls.
+- Use web search and Context7 (library docs MCP) for Accord Project, Zod, OpenAI SDK docs.
+
+### Step 3: Report (In Chat Only)
+
+1. Restate the problem in your own words
+2. ASCII dependency/data-flow diagram for the affected area
+3. List of bugs found during investigation
+4. Root cause analysis — data problem vs logic problem
+5. Simple, straightforward fix plan (favor simplicity)
+
+**DO NOT create report files or documents. Keep everything in chat.**
+
+## SESAP-Specific Gotchas
+
+1. **$class requirement**: Every JSON object for Concerto MUST have `"$class": "com.sesap.contract@1.0.0.TypeName"`. Omitting this causes silent failures.
+2. **Null vs Omit**: Concerto expects optional fields to be OMITTED, not null. `stripNullValues()` in `server/api.ts` handles this — verify it's being called.
+3. **Zod 4 + OpenAI SDK 6**: Must use SDK 6.x for Zod 4 compatibility. SDK 5.x breaks.
+4. **`.optional()` is illegal in structured output**: Use `.nullable()`. See `docs/STRUCTURED_OUTPUT_LESSONS.md`.
+5. **`z.record()` is illegal in structured output**: Use `z.string()` and parse after receiving.
+6. **Reasoning model token budget**: GPT-5.1 uses 50-80% of tokens for reasoning. Need 4K output? Request 16K+.
+7. **Hardcoded money model**: Both `server/accord/engine.ts` and `src/store/store.ts` hardcode `org.accordproject.money@0.3.0`. If one is updated, BOTH must be.
+8. **Debounce race conditions**: `rebuild()` is debounced at 500ms. Previous promises resolve as cancelations.
+9. **StrictMode double-mount**: `App.tsx` uses `initCalledRef` guard. Removing it causes double init.
+10. **Console noise suppression**: `main.tsx` suppresses CDN 404s, ResizeObserver errors. Real errors may hide if they match patterns.
+11. **Vite proxy**: `/api/*` proxies to `localhost:3001`. Express server must be running for contract generation.
+12. **Concerto-core override**: `package.json` overrides to `^3.20.4`. Removing this breaks Accord imports.
+13. **TemplateMark syntax**: No `{{#if}}`, no `{{#optional}}`, no `{{.}}`, no `{{/join}}` closing tags. `{{#join arrayName}}` is inline with NO closing tag for String[] arrays.
+14. **Flat model structure**: Arrays only at the @template concept level. Nested concepts must NOT contain arrays — use comma-separated strings instead.
+
+## Rules
+
+- Use web search and Context7 (library docs MCP) when in doubt. DO NOT GUESS.
+- Produce ASCII logic diagrams for every troubleshooting session.
+- All reports stay in chat. DO NOT create files unless explicitly asked.
+- Follow `Implementation.instructions.md` when proposing fixes.
+- The user may use voice transcription — infer intent from context if wording is imprecise.
+- Use high reasoning effort. Be a senior developer. Be diligent. Ground yourself in the code.
+- Do NOT ask "can I look at the next file?" — just look at it. You have the tools.
+- Gather evidence, refine hypothesis, search again, think again. Don't stop at first guess.

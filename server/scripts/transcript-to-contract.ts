@@ -104,7 +104,7 @@ The contract should include:
 - Signatures section
 
 CRITICAL Concerto Model (.cto) Syntax Rules:
-- Namespace MUST include version: namespace org.accordproject.contract@1.0.0
+- Namespace MUST include version: namespace com.sesap.contract@1.0.0
 - The MAIN contract type MUST have @template decorator on line before it
 - Use "concept" for ALL data structures
 - ALL fields MUST start with 'o' followed by type: \`o String fieldName\`
@@ -149,19 +149,19 @@ Important rules for TemplateMark:
 - Do NOT use {{#if}}, {{#optional}}, {{#template}}, or {{.}}
 
 CRITICAL JSON Data Rules:
-- EVERY object MUST have "$class": "org.accordproject.contract@1.0.0.TypeName"
-- The root object uses the @template concept: "$class": "org.accordproject.contract@1.0.0.ContractData"
-- Nested objects use their concept name: "$class": "org.accordproject.contract@1.0.0.Party"
+- EVERY object MUST have "$class": "com.sesap.contract@1.0.0.TypeName"
+- The root object uses the @template concept: "$class": "com.sesap.contract@1.0.0.ContractData"
+- Nested objects use their concept name: "$class": "com.sesap.contract@1.0.0.Party"
 - Arrays of concepts: each item needs $class
 - Do NOT use null for optional fields - OMIT them entirely
 - DateTime values must be ISO 8601 format: "2025-01-15T00:00:00Z"
 
 Example JSON structure:
 {
-  "$class": "org.accordproject.contract@1.0.0.ContractData",
+  "$class": "com.sesap.contract@1.0.0.ContractData",
   "contractId": "ABC-123",
   "provider": {
-    "$class": "org.accordproject.contract@1.0.0.Party",
+    "$class": "com.sesap.contract@1.0.0.Party",
     "name": "Acme Corp",
     "role": "Provider"
   }
@@ -193,7 +193,7 @@ IMPORTANT RULES:
 - CRITICAL: Every {{variable}} used in template MUST have a VALUE in jsonData - not just in model!
   If template uses {{estimatedValue}}, jsonData MUST have "estimatedValue": "some value"
   If a field is missing from jsonData, EITHER add a placeholder value OR remove it from template
-- EVERY object in jsonData MUST have "$class": "org.accordproject.contract@1.0.0.TypeName"
+- EVERY object in jsonData MUST have "$class": "com.sesap.contract@1.0.0.TypeName"
 - Do NOT use null values - OMIT optional fields entirely if not set
 - If you find null values, REMOVE them from the JSON
 - CRITICAL: REMOVE all {{#if}} and {{/if}} - TemplateMark does NOT support Handlebars conditionals
