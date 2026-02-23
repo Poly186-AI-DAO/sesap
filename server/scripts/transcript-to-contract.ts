@@ -1,29 +1,29 @@
 /**
  * Transcript to Contract Generator
- * 
+ *
  * Converts meeting transcripts into Smart Social Contracts using:
  * 1. GPT-5.1 (heavy) - Extract contract structure from transcript
  * 2. GPT-5-mini (medium) - Generate Accord artifacts (Model, Template, Data)
  * 3. GPT-5-nano (light) - Validate and polish
- * 
+ *
  * Uses Zod schemas for type-safe structured output
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import * as dotenv from 'dotenv';
-import { chat, chatStructured } from '../llm/azure-client';
-import { 
-  ContractStructureSchema, 
-  AccordArtifactsSchema, 
+import * as fs from "fs";
+import * as path from "path";
+import * as dotenv from "dotenv";
+import { chat, chatStructured } from "../llm/azure-client";
+import {
+  ContractStructureSchema,
+  AccordArtifactsSchema,
   ValidationResultSchema,
   type ContractStructure,
   type AccordArtifacts,
-  type ValidationResult
-} from '../schemas/contract';
+  type ValidationResult,
+} from "../schemas/contract";
 
 // Load environment variables
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 const EXTRACT_STRUCTURE_PROMPT = `You are a legal contract analyst. Your job is to analyze meeting transcripts and extract the key information needed to draft a professional services contract.
 
@@ -140,6 +140,10 @@ concept Party {
 Important rules for TemplateMark:
 - Use {{variableName}} for simple variables 
 - Use {{#clause conceptName}} {{/clause}} for nested concepts (container block with closing tag)
+- CRITICAL: Each {{#clause conceptName}} can only appear ONCE in the entire template!
+  The Accord engine does NOT support using {{#clause provider}} in two different places.
+  If you need the same data again later (e.g. in a signatures section), use FLAT STRING FIELDS
+  on the @template concept (e.g. providerSignatureName) instead of reusing the clause.
 - For primitive String[] arrays, use {{#join arrayName}} - this is an INLINE block with NO closing tag
   Example: "Your favorite colors are {{#join favoriteColors}}"
   This renders as: "Your favorite colors are red, green, blue"
@@ -202,6 +206,10 @@ IMPORTANT RULES:
   Correct: "Colors: {{#join colors}}"
   Wrong: "Colors: {{#join colors separator=", "}}{{/join}}"
 - Do NOT use {{.}} anywhere - it's not valid TemplateMark syntax
+- CRITICAL: Each {{#clause conceptName}} can only appear ONCE in the entire template!
+  The Accord engine crashes if the same clause (e.g. {{#clause provider}}) is used more than once.
+  If the template reuses a clause, REMOVE the duplicate and replace with flat @template fields.
+  Example fix: Replace a second {{#clause provider}}{{name}}{{/clause}} in signatures with {{providerSignatureName}}
 
 Respond in JSON format:
 {
@@ -216,128 +224,249 @@ Respond in JSON format:
 // ==================== MAIN FUNCTION ====================
 // Types are imported from ../schemas/contract (Zod-inferred)
 
+/**
+ * Sanitize TemplateMark template to fix common LLM-generated issues:
+ * 1. Remove duplicate {{#clause}} blocks (Accord engine only supports one per concept field)
+ * 2. Remove {{#if}}/{{/if}}, {{#optional}}/{{/optional}}, {{.}}, {{/join}} patterns
+ */
+function sanitizeTemplateMark(template: string): {
+  sanitized: string;
+  fixes: string[];
+} {
+  const fixes: string[] = [];
+  let result = template;
+
+  // Fix 1: Detect and remove duplicate {{#clause}} blocks
+  // The Accord engine crashes if the same clause field is used more than once
+  const clauseRegex = /\{\{#clause\s+(\w+)\}\}/g;
+  const clauseCounts = new Map<string, number>();
+  let match;
+  while ((match = clauseRegex.exec(result)) !== null) {
+    const fieldName = match[1];
+    clauseCounts.set(fieldName, (clauseCounts.get(fieldName) || 0) + 1);
+  }
+
+  for (const [fieldName, count] of clauseCounts) {
+    if (count > 1) {
+      // Find all occurrences and remove all but the first
+      let firstFound = false;
+      result = result.replace(
+        new RegExp(
+          `\\{\\{#clause\\s+${fieldName}\\}\\}([\\s\\S]*?)\\{\\{/clause\\}\\}`,
+          "g",
+        ),
+        (fullMatch, innerContent) => {
+          if (!firstFound) {
+            firstFound = true;
+            return fullMatch; // Keep the first occurrence
+          }
+          // Extract variable references from the duplicate block and replace with inline text
+          const varRefs = innerContent.match(/\{\{(\w+)\}\}/g);
+          if (varRefs) {
+            // Replace duplicate clause with just the inner variable references as-is
+            // These will need to be resolved as flat fields on the @template concept
+            fixes.push(
+              `Removed duplicate {{#clause ${fieldName}}} — inner variables may need flat field equivalents`,
+            );
+            return innerContent.trim();
+          }
+          fixes.push(`Removed duplicate {{#clause ${fieldName}}} block`);
+          return "";
+        },
+      );
+    }
+  }
+
+  // Fix 2: Remove {{#if}}/{{/if}} blocks (not valid TemplateMark)
+  const ifPattern = /\{\{#if\s+\w+\}\}([\s\S]*?)\{\{\/if\}\}/g;
+  if (ifPattern.test(result)) {
+    result = result.replace(ifPattern, "$1");
+    fixes.push("Removed {{#if}}/{{/if}} blocks (not valid TemplateMark)");
+  }
+
+  // Fix 3: Remove {{#optional}}/{{/optional}} blocks
+  const optionalPattern =
+    /\{\{#optional\s+\w+\}\}([\s\S]*?)\{\{\/optional\}\}/g;
+  if (optionalPattern.test(result)) {
+    result = result.replace(optionalPattern, "$1");
+    fixes.push("Removed {{#optional}}/{{/optional}} blocks");
+  }
+
+  // Fix 4: Remove {{/join}} closing tags (join is inline, no closing tag)
+  if (result.includes("{{/join}}")) {
+    result = result.replace(/\{\{\/join\}\}/g, "");
+    fixes.push("Removed {{/join}} closing tags (join is inline)");
+  }
+
+  // Fix 5: Remove {{.}} references (not valid TemplateMark)
+  if (result.includes("{{.}}")) {
+    result = result.replace(/\{\{\.\}\}/g, "");
+    fixes.push("Removed {{.}} references (not valid TemplateMark)");
+  }
+
+  return { sanitized: result, fixes };
+}
 
 export async function transcriptToContract(
   transcriptPath: string,
-  outputDir?: string
+  outputDir?: string,
 ): Promise<{
   structure: ContractStructure;
   artifacts: AccordArtifacts;
   validation: ValidationResult;
   html: string;
 }> {
-  console.log('\n========================================');
-  console.log('  TRANSCRIPT TO CONTRACT GENERATOR');
-  console.log('========================================\n');
+  console.log("\n========================================");
+  console.log("  TRANSCRIPT TO CONTRACT GENERATOR");
+  console.log("========================================\n");
 
   // Read transcript
   console.log(`📄 Reading transcript: ${transcriptPath}`);
-  const transcript = fs.readFileSync(transcriptPath, 'utf-8');
+  const transcript = fs.readFileSync(transcriptPath, "utf-8");
   console.log(`   Length: ${transcript.length} characters\n`);
 
   // STEP 1: Extract structure with GPT-5.1 (heavy reasoning) + Zod schema
-  console.log('🧠 STEP 1: Extracting contract structure (GPT-5.1 + structured output)...');
+  console.log(
+    "🧠 STEP 1: Extracting contract structure (GPT-5.1 + structured output)...",
+  );
   const structure = await chatStructured(
-    'heavy',
+    "heavy",
     EXTRACT_STRUCTURE_PROMPT,
     `Here is the meeting transcript:\n\n${transcript}`,
     ContractStructureSchema,
-    'ContractStructure',
-    { maxTokens: 16384 }  // Increased - reasoning models need tokens for thinking + output
+    "ContractStructure",
+    { maxTokens: 16384 }, // Increased - reasoning models need tokens for thinking + output
   );
-  console.log(`   ✅ Extracted: ${structure.engagementType.join(', ')}`);
-  console.log(`   Parties: ${structure.parties.provider.name} → ${structure.parties.client.name}\n`);
+  console.log(`   ✅ Extracted: ${structure.engagementType.join(", ")}`);
+  console.log(
+    `   Parties: ${structure.parties.provider.name} → ${structure.parties.client.name}\n`,
+  );
 
   // STEP 2: Generate Accord artifacts with GPT-5-mini + Zod schema
-  console.log('⚙️  STEP 2: Generating Accord artifacts (GPT-5-mini + structured output)...');
+  console.log(
+    "⚙️  STEP 2: Generating Accord artifacts (GPT-5-mini + structured output)...",
+  );
   const artifacts = await chatStructured(
-    'medium',
+    "medium",
     GENERATE_ACCORD_PROMPT,
-    `Here is the extracted contract structure:\n\n${JSON.stringify(structure, null, 2)}`,
+    `Here is the extracted contract structure:\n\n${JSON.stringify(
+      structure,
+      null,
+      2,
+    )}`,
     AccordArtifactsSchema,
-    'AccordArtifacts',
-    { maxTokens: 32768 }  // Large - needs room for reasoning + full .cto, .tem.md, and JSON
+    "AccordArtifacts",
+    { maxTokens: 32768 }, // Large - needs room for reasoning + full .cto, .tem.md, and JSON
   );
   console.log(`   ✅ Generated Model, Template, and Data\n`);
 
   // STEP 3: Validate and polish with GPT-5-mini (upgraded from nano - nano runs out of tokens)
   let validation: ValidationResult;
-  
+
   try {
-    console.log('✨ STEP 3: Validating and polishing (GPT-5-mini + structured output)...');
+    console.log(
+      "✨ STEP 3: Validating and polishing (GPT-5-mini + structured output)...",
+    );
     validation = await chatStructured(
-      'medium',  // Changed from 'light' - nano exhausts tokens on reasoning
+      "medium", // Changed from 'light' - nano exhausts tokens on reasoning
       VALIDATE_POLISH_PROMPT,
-      `Here are the generated Accord artifacts:\n\n${JSON.stringify(artifacts, null, 2)}`,
+      `Here are the generated Accord artifacts:\n\n${JSON.stringify(
+        artifacts,
+        null,
+        2,
+      )}`,
       ValidationResultSchema,
-      'ValidationResult',
-      { maxTokens: 16384 }  // Increased for larger output
+      "ValidationResult",
+      { maxTokens: 16384 }, // Increased for larger output
     );
     console.log(`   Valid: ${validation.isValid}`);
     if (validation.issues.length > 0) {
-      console.log(`   Issues: ${validation.issues.join(', ')}`);
+      console.log(`   Issues: ${validation.issues.join(", ")}`);
     }
     if (validation.fixes.length > 0) {
-      console.log(`   Fixes: ${validation.fixes.join(', ')}`);
+      console.log(`   Fixes: ${validation.fixes.join(", ")}`);
     }
   } catch (error) {
-    console.log('   ⚠️  Validation step failed, using Step 2 artifacts directly');
-    console.log(`   Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.log(
+      "   ⚠️  Validation step failed, using Step 2 artifacts directly",
+    );
+    console.log(
+      `   Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
     validation = {
       isValid: true,
       issues: [],
-      fixes: ['Skipped validation step - using raw artifacts'],
-      ...artifacts
+      fixes: ["Skipped validation step - using raw artifacts"],
+      ...artifacts,
     };
   }
-  console.log('');
+  console.log("");
+
+  // STEP 3.5: Sanitize TemplateMark to fix common LLM-generated issues
+  const { sanitized: sanitizedTemplate, fixes: sanitizeFixes } =
+    sanitizeTemplateMark(validation.templateMark);
+  if (sanitizeFixes.length > 0) {
+    console.log("🔧 STEP 3.5: Template sanitization applied:");
+    for (const fix of sanitizeFixes) {
+      console.log(`   - ${fix}`);
+    }
+    validation = { ...validation, templateMark: sanitizedTemplate };
+    console.log("");
+  }
 
   // Save outputs
-  const outDir = outputDir || path.join(path.dirname(transcriptPath), 'contract_output');
+  const outDir =
+    outputDir || path.join(path.dirname(transcriptPath), "contract_output");
   if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
   }
 
   const baseName = path.basename(transcriptPath, path.extname(transcriptPath));
-  
+
   fs.writeFileSync(
     path.join(outDir, `${baseName}_structure.json`),
-    JSON.stringify(structure, null, 2)
+    JSON.stringify(structure, null, 2),
   );
-  
+
   fs.writeFileSync(
     path.join(outDir, `${baseName}_model.cto`),
-    validation.concertoModel
+    validation.concertoModel,
   );
-  
+
   fs.writeFileSync(
     path.join(outDir, `${baseName}_template.tem.md`),
-    validation.templateMark
+    validation.templateMark,
   );
-  
+
   fs.writeFileSync(
     path.join(outDir, `${baseName}_data.json`),
     // jsonData is now a JSON string, pretty-print it
     // Sanitize control characters that LLMs sometimes output in JSON strings
     (() => {
-      if (typeof validation.jsonData === 'string') {
+      if (typeof validation.jsonData === "string") {
         // Replace literal control characters with escaped versions
-        const sanitized = validation.jsonData
-          .replace(/[\x00-\x1F\x7F]/g, (char) => {
+        const sanitized = validation.jsonData.replace(
+          /[\x00-\x1F\x7F]/g,
+          (char) => {
             const escapes: Record<string, string> = {
-              '\n': '\\n', '\r': '\\r', '\t': '\\t', '\b': '\\b', '\f': '\\f'
+              "\n": "\\n",
+              "\r": "\\r",
+              "\t": "\\t",
+              "\b": "\\b",
+              "\f": "\\f",
             };
-            return escapes[char] || '';
-          });
+            return escapes[char] || "";
+          },
+        );
         try {
           return JSON.stringify(JSON.parse(sanitized), null, 2);
         } catch (e) {
-          console.warn('   ⚠️  JSON parse failed, saving raw string');
+          console.warn("   ⚠️  JSON parse failed, saving raw string");
           return sanitized;
         }
       }
       return JSON.stringify(validation.jsonData, null, 2);
-    })()
+    })(),
   );
 
   console.log(`📁 Output saved to: ${outDir}`);
@@ -347,17 +476,24 @@ export async function transcriptToContract(
   console.log(`   - ${baseName}_data.json`);
 
   // STEP 4: Render to HTML using Accord Engine (optional)
-  let html = '';
+  let html = "";
   try {
-    console.log('\n📄 STEP 4: Rendering to HTML (Accord Engine)...');
-    const { renderToHtml } = await import('../accord/engine');
+    console.log("\n📄 STEP 4: Rendering to HTML (Accord Engine)...");
+    const { renderToHtml } = await import("../accord/engine");
     // Parse jsonData if it's a string (from structured output), with sanitization
     let jsonDataObj: Record<string, unknown>;
-    if (typeof validation.jsonData === 'string') {
-      const sanitized = validation.jsonData.replace(/[\x00-\x1F\x7F]/g, (char) => {
-        const escapes: Record<string, string> = { '\n': '\\n', '\r': '\\r', '\t': '\\t' };
-        return escapes[char] || '';
-      });
+    if (typeof validation.jsonData === "string") {
+      const sanitized = validation.jsonData.replace(
+        /[\x00-\x1F\x7F]/g,
+        (char) => {
+          const escapes: Record<string, string> = {
+            "\n": "\\n",
+            "\r": "\\r",
+            "\t": "\\t",
+          };
+          return escapes[char] || "";
+        },
+      );
       jsonDataObj = JSON.parse(sanitized);
     } else {
       jsonDataObj = validation.jsonData as Record<string, unknown>;
@@ -365,27 +501,32 @@ export async function transcriptToContract(
     const result = await renderToHtml(
       validation.concertoModel,
       validation.templateMark,
-      jsonDataObj
+      jsonDataObj,
     );
-    
+
     if (result.success) {
       html = result.html;
-      fs.writeFileSync(
-        path.join(outDir, `${baseName}_contract.html`),
-        html
-      );
+      fs.writeFileSync(path.join(outDir, `${baseName}_contract.html`), html);
       console.log(`   ✅ HTML rendered and saved`);
       console.log(`   - ${baseName}_contract.html`);
     } else {
       console.log(`   ⚠️  HTML render failed: ${result.error}`);
-      console.log('   (Artifacts saved, you can render manually in the playground)');
+      console.log(
+        "   (Artifacts saved, you can render manually in the playground)",
+      );
     }
   } catch (error) {
-    console.log(`   ⚠️  HTML render skipped: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    console.log('   (Artifacts saved, you can render manually in the playground)');
+    console.log(
+      `   ⚠️  HTML render skipped: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
+    );
+    console.log(
+      "   (Artifacts saved, you can render manually in the playground)",
+    );
   }
 
-  console.log('\n========================================\n');
+  console.log("\n========================================\n");
 
   return { structure, artifacts, validation, html };
 }
@@ -394,12 +535,16 @@ export async function transcriptToContract(
 
 async function main() {
   const args = process.argv.slice(2);
-  
+
   if (args.length === 0) {
-    console.log('Usage: npx ts-node transcript-to-contract.ts <transcript-path> [output-dir]');
-    console.log('');
-    console.log('Example:');
-    console.log('  npx ts-node transcript-to-contract.ts ../docs/Coastal_Elements_AI_Introduction_SL_Nusbaum_Transcript.txt');
+    console.log(
+      "Usage: npx ts-node transcript-to-contract.ts <transcript-path> [output-dir]",
+    );
+    console.log("");
+    console.log("Example:");
+    console.log(
+      "  npx ts-node transcript-to-contract.ts ../docs/Coastal_Elements_AI_Introduction_SL_Nusbaum_Transcript.txt",
+    );
     process.exit(1);
   }
 
@@ -414,7 +559,7 @@ async function main() {
   try {
     await transcriptToContract(transcriptPath, outputDir);
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Error:", error);
     process.exit(1);
   }
 }

@@ -4,7 +4,6 @@ import {
   PartySchema,
   PhaseSchema,
   ScopeOfWorkSchema,
-  MilestoneSchema,
   TimelineSchema,
   CommercialTermsSchema,
   NextStepSchema,

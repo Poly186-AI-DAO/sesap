@@ -9,6 +9,20 @@ import { transform } from "@accordproject/markdown-transform";
 import * as playground from "../samples/playground";
 import { decompress } from "../utils/compression/compression";
 
+const HISTORY_STORAGE_KEY = "sesap-generation-history";
+const MAX_HISTORY_ENTRIES = 10;
+
+export interface GenerationHistoryEntry {
+  id: string;
+  timestamp: number;
+  title: string;
+  transcriptPreview: string;
+  model: string;
+  template: string;
+  data: string;
+  html: string;
+}
+
 interface AppState {
   templateMarkdown: string;
   editorValue: string;
@@ -22,6 +36,7 @@ interface AppState {
   generationProgress: string;
   backgroundColor: string;
   textColor: string;
+  generationHistory: GenerationHistoryEntry[];
   setTemplateMarkdown: (template: string) => Promise<void>;
   setEditorValue: (value: string) => void;
   setModelCto: (model: string) => Promise<void>;
@@ -36,6 +51,13 @@ interface AppState {
     data: string,
   ) => Promise<void>;
   loadFromLink: (compressedData: string) => Promise<void>;
+  setGenerationProgress: (progress: string) => void;
+  addHistoryEntry: (
+    entry: Omit<GenerationHistoryEntry, "id" | "timestamp">,
+  ) => void;
+  loadHistoryEntry: (id: string) => Promise<void>;
+  deleteHistoryEntry: (id: string) => void;
+  clearHistory: () => void;
 }
 
 export interface DecompressedData {
@@ -334,6 +356,29 @@ const getInitialTheme = () => {
   return { backgroundColor: "#ffffff", textColor: "#121212" };
 };
 
+function loadHistoryFromStorage(): GenerationHistoryEntry[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.slice(0, MAX_HISTORY_ENTRIES);
+  } catch {
+    return [];
+  }
+}
+
+function saveHistoryToStorage(history: GenerationHistoryEntry[]): void {
+  try {
+    localStorage.setItem(
+      HISTORY_STORAGE_KEY,
+      JSON.stringify(history.slice(0, MAX_HISTORY_ENTRIES)),
+    );
+  } catch {
+    // localStorage full or unavailable — fail silently
+  }
+}
+
 const useAppStore = create<AppState>()(
   immer(
     devtools((set, get) => {
@@ -343,6 +388,7 @@ const useAppStore = create<AppState>()(
         textColor: initialTheme.textColor,
         isGenerating: false,
         generationProgress: "",
+        generationHistory: loadHistoryFromStorage(),
         templateMarkdown: playground.TEMPLATE,
         editorValue: playground.TEMPLATE,
         modelCto: playground.MODEL,
@@ -475,6 +521,46 @@ const useAppStore = create<AppState>()(
                 (error instanceof Error ? error.message : "Unknown error"),
             }));
           }
+        },
+        setGenerationProgress: (progress: string) => {
+          set(() => ({ generationProgress: progress }));
+        },
+        addHistoryEntry: (
+          entry: Omit<GenerationHistoryEntry, "id" | "timestamp">,
+        ) => {
+          const newEntry: GenerationHistoryEntry = {
+            ...entry,
+            id: `gen-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            timestamp: Date.now(),
+          };
+          set((state) => {
+            state.generationHistory = [
+              newEntry,
+              ...state.generationHistory,
+            ].slice(0, MAX_HISTORY_ENTRIES);
+          });
+          saveHistoryToStorage(get().generationHistory);
+        },
+        loadHistoryEntry: async (id: string) => {
+          const entry = get().generationHistory.find((h) => h.id === id);
+          if (!entry) return;
+          await get().setContractArtifacts(
+            entry.model,
+            entry.template,
+            entry.data,
+          );
+        },
+        deleteHistoryEntry: (id: string) => {
+          set((state) => {
+            state.generationHistory = state.generationHistory.filter(
+              (h) => h.id !== id,
+            );
+          });
+          saveHistoryToStorage(get().generationHistory);
+        },
+        clearHistory: () => {
+          set(() => ({ generationHistory: [] }));
+          saveHistoryToStorage([]);
         },
       };
     }),
