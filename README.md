@@ -17,8 +17,20 @@
 
 SESAP is an AI-powered platform that transforms unstructured meeting transcripts into structured, executable [Smart Social Contracts](docs/Smart%20Social%20Contracts%20Overview.md) using the [Accord Project](https://accordproject.org/) technology stack. It features a browser-based Template Playground for designing, testing, and previewing contracts in real-time — and an MCP server that brings contract generation directly into GitHub Copilot Chat.
 
+## The Vision: Smart Social Contracts as a Service
+
+At its core, SESAP is an experiment in building a foundation for **autonomous economic execution**. Turning natural language into rigorous Accord Project schemas is the hardest part. Once a conversation is structured into a strictly typed `.cto` model, it unlocks the ability for an **AI Workforce** to operate on your behalf.
+
+Imagine a network of reasoning agents that:
+- **Evaluate** the terms of the Smart Social Contract.
+- **Execute** workflows based on those terms to generate revenue for the user.
+- **Sign** and govern agreements autonomously, held accountable by underlying economic incentives and structured evaluations.
+
+SESAP provides the "DocuSign for Agents" layer, bridging the gap between human intent (meeting transcripts) and autonomous digital economies.
+
 ## Poly186 Ecosystem Integration & Roadmap
 - [x] Initial Poly186 repository setup and open-source launch
+- [x] UI execution frame for agent evaluation and signing concepts
 - [ ] Connect SESAP with Poly186 Identity and Authentication layers
 - [ ] Enable one-click contract deployment to Poly186 ledgers
 - [ ] Seamless integration with the broader Poly186 Agent Network
