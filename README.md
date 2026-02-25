@@ -12,7 +12,16 @@
 
 **Turn meeting transcripts into executable smart contracts in seconds.**
 
+[![SESAP Demo Video](https://img.youtube.com/vi/YOUR_VIDEO_ID_HERE/maxresdefault.jpg)](https://www.youtube.com/watch?v=YOUR_VIDEO_ID_HERE)
+*(Click here or on the image above to watch the SESAP Demo Video!)*
+
 SESAP is an AI-powered platform that transforms unstructured meeting transcripts into structured, executable [Smart Social Contracts](docs/Smart%20Social%20Contracts%20Overview.md) using the [Accord Project](https://accordproject.org/) technology stack. It features a browser-based Template Playground for designing, testing, and previewing contracts in real-time — and an MCP server that brings contract generation directly into GitHub Copilot Chat.
+
+## Poly186 Ecosystem Integration & Roadmap
+- [x] Initial Poly186 repository setup and open-source launch
+- [ ] Connect SESAP with Poly186 Identity and Authentication layers
+- [ ] Enable one-click contract deployment to Poly186 ledgers
+- [ ] Seamless integration with the broader Poly186 Agent Network
 
 ---
 
