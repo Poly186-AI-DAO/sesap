@@ -26,7 +26,7 @@ import {
   INTENT_SIGNAL_DISCOVERY_TASK_ID,
   INTENT_SIGNAL_DISCOVERY_WORKFLOW_VERSION,
 } from '../../../server/scheduler/intent-signal-discovery';
-import type { Execution, SchedulerState, Task, Workflow } from '../../../server/scheduler/types';
+import type { Execution, SchedulerState, Task } from '../../../server/scheduler/types';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -173,7 +173,10 @@ describe('checkConcurrency', () => {
   });
 
   it('blocks when MAX_CONCURRENT_EXECUTIONS reached', () => {
-    const state = makeState({ activeExecutions: [makeRunningExecution(1_000)] });
+    const executions = Array.from({ length: MAX_CONCURRENT_EXECUTIONS }, (_, i) =>
+      makeRunningExecution(1_000, `exec-${i}`),
+    );
+    const state = makeState({ activeExecutions: executions });
     const result = checkConcurrency(state, NOW);
     expect(result.allowed).toBe(false);
     expect(result.reason).toMatch(/UserConcurrencyLimitError/);
