@@ -1,7 +1,9 @@
 /**
- * Express API server for contract generation
- * 
- * Provides endpoints for the frontend to generate contracts from transcripts
+ * Express API server for contract generation and scheduler management
+ *
+ * Provides endpoints for:
+ *   - Contract generation from transcripts
+ *   - Scheduler status, reconciliation, and manual trigger
  */
 
 import express, { Request, Response } from 'express';
@@ -9,6 +11,14 @@ import cors from 'cors';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 import { transcriptToContract } from './scripts/transcript-to-contract';
+import {
+  buildIntentSignalDiscoveryState,
+  INTENT_SIGNAL_DISCOVERY_WORKFLOW_ID,
+  INTENT_SIGNAL_DISCOVERY_TASK_ID,
+} from './scheduler/intent-signal-discovery';
+import { reconcile, startExecution, shouldTrigger } from './scheduler/workflow-scheduler';
+import { checkMonitoring } from './scheduler/monitoring';
+import type { SchedulerState } from './scheduler/types';
 
 // Load environment variables
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -108,6 +118,127 @@ app.post('/api/generate/contract', async (req: Request, res: Response) => {
 // Health check
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok' });
+});
+
+// ─── Scheduler endpoints ──────────────────────────────────────────────────────
+
+/**
+ * In-memory scheduler state store.
+ * In a production deployment this would be backed by PostgreSQL; the interface
+ * is intentionally identical so a DB adapter can be swapped in without
+ * changing the endpoint logic.
+ *
+ * WARNING: state is lost on server restart. Persist to PostgreSQL before
+ * promoting to production so active executions and recurrence dates survive
+ * process restarts.
+ */
+let schedulerState: SchedulerState = buildIntentSignalDiscoveryState();
+console.warn(
+  '[Scheduler] Using in-memory state store. ' +
+    'State will be lost on server restart. ' +
+    'Integrate PostgreSQL persistence before production deployment.',
+);
+
+/**
+ * GET /api/scheduler/status
+ *
+ * Returns the current scheduler state plus any active monitoring alerts.
+ * Use this to verify:
+ *   - workflow.execution_status
+ *   - task.next_recurrence_date
+ *   - task.updated_at (should advance roughly hourly)
+ *   - alerts array (empty = healthy)
+ */
+app.get('/api/scheduler/status', (_req: Request, res: Response) => {
+  const alerts = checkMonitoring(schedulerState);
+  console.log(`[Scheduler] Status requested. Alerts: ${alerts.length}`);
+  res.json({
+    workflow: schedulerState.workflow,
+    task: schedulerState.task,
+    activeExecutions: schedulerState.activeExecutions,
+    alerts,
+  });
+});
+
+/**
+ * POST /api/scheduler/reconcile
+ *
+ * Detect and fix state drift, orphaned executions, stale recurrence dates,
+ * and missing is_scheduled flag.  Safe to call repeatedly; idempotent when
+ * state is already consistent.
+ *
+ * This is the primary remediation action for the issue:
+ *   - Clears orphaned active executions (removes UserConcurrencyLimitError blocks)
+ *   - Resets workflow from false RUNNING to not_started
+ *   - Advances next_recurrence_date when stuck in the past
+ *   - Sets is_scheduled=true as the single source of truth
+ */
+app.post('/api/scheduler/reconcile', (_req: Request, res: Response) => {
+  const result = reconcile(schedulerState);
+  schedulerState = result.state;
+
+  console.log(
+    `[Scheduler] Reconciliation complete. Actions: ${result.actions.map((a) => a.type).join(', ')}`,
+  );
+
+  res.json({
+    actions: result.actions,
+    workflow: schedulerState.workflow,
+    task: schedulerState.task,
+    activeExecutions: schedulerState.activeExecutions,
+  });
+});
+
+/**
+ * POST /api/scheduler/trigger
+ *
+ * Manually trigger the next execution cycle (e.g. for testing or catch-up
+ * after a missed cadence).  Returns 409 if an execution is already running or
+ * if it is not yet time for the next cycle and `force` is not set.
+ *
+ * Body: { force?: boolean }
+ *   force=true  – trigger even if next_recurrence_date is in the future
+ */
+app.post('/api/scheduler/trigger', (req: Request, res: Response) => {
+  const force = req.body?.force === true;
+  const now = new Date();
+
+  if (!force && !shouldTrigger(schedulerState, now)) {
+    const next = schedulerState.task.next_recurrence_date;
+    return res.status(409).json({
+      error: 'Not yet time for next cycle',
+      next_recurrence_date: next?.toISOString() ?? null,
+      hint: 'Pass { force: true } to override the recurrence gate.',
+    });
+  }
+
+  try {
+    const { execution, state } = startExecution(schedulerState, now);
+    schedulerState = state;
+
+    console.log(
+      `[Scheduler] Execution ${execution.id} started for task ${INTENT_SIGNAL_DISCOVERY_TASK_ID}`,
+    );
+
+    // NOTE: In production, dispatch the actual intent-signal scan here.
+    // The execution ID should be passed to the background job so it can call
+    // completeExecution() when the scan finishes.
+
+    res.status(202).json({
+      execution_id: execution.id,
+      workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_ID,
+      task_id: INTENT_SIGNAL_DISCOVERY_TASK_ID,
+      started_at: execution.started_at.toISOString(),
+      message: 'Execution started. Monitor via GET /api/scheduler/status.',
+    });
+  } catch (err) {
+    // Includes UserConcurrencyLimitError-equivalent messages
+    console.error('[Scheduler] Failed to start execution:', err);
+    res.status(409).json({
+      error: err instanceof Error ? err.message : 'Failed to start execution',
+      hint: 'Call POST /api/scheduler/reconcile to clear orphaned executions first.',
+    });
+  }
 });
 
 app.listen(PORT, () => {
