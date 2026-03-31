@@ -68,13 +68,14 @@ export function computeNextRecurrenceDate(
 // ─── Detection helpers ────────────────────────────────────────────────────────
 
 /**
- * True when the workflow claims to be running but no active execution exists.
- * This is the primary "orchestration drift" symptom described in the issue.
+ * True when the workflow claims to be running but no truly-running execution exists.
+ * Checks `status === 'running'` explicitly so that completed/cancelled entries
+ * that may linger in the array do not mask real orchestration drift.
  */
 export function hasStateDrift(state: SchedulerState): boolean {
   return (
     state.workflow.execution_status === 'running' &&
-    state.activeExecutions.length === 0
+    state.activeExecutions.filter((e) => e.status === 'running').length === 0
   );
 }
 
@@ -162,25 +163,23 @@ export function reconcile(
 ): ReconciliationResult {
   const actions: ReconciliationAction[] = [];
   let { workflow, task, activeExecutions } = state;
+  const cancelledExecutions: Execution[] = [];
 
   // ── 1. Clear orphaned executions ──────────────────────────────────────────
   const orphaned = findOrphanedExecutions({ workflow, task, activeExecutions }, now);
   if (orphaned.length > 0) {
     const orphanedIds = new Set(orphaned.map((e) => e.id));
-    const cancelledOrphans: Execution[] = orphaned.map((e) => ({
+    const newlyCancelled: Execution[] = orphaned.map((e) => ({
       ...e,
       status: 'cancelled' as ExecutionStatus,
       completed_at: now,
       error: `Orphaned: execution exceeded ${EXECUTION_TIMEOUT_MS / 60_000} min timeout`,
     }));
 
-    // Replace active list: remove orphaned entries
-    activeExecutions = activeExecutions
-      .filter((e) => !orphanedIds.has(e.id))
-      .concat(
-        // Keep cancelled orphans in the list so callers can persist them
-        cancelledOrphans,
-      );
+    // Remove orphaned entries from activeExecutions (strictly running-only)
+    activeExecutions = activeExecutions.filter((e) => !orphanedIds.has(e.id));
+    // Surface cancelled records to callers for persistence; do NOT put them back in activeExecutions
+    cancelledExecutions.push(...newlyCancelled);
 
     actions.push({
       type: 'clear_orphaned',
@@ -190,7 +189,7 @@ export function reconcile(
     });
   }
 
-  // Active executions after orphan removal (exclude the cancelled ones we just added)
+  // Active executions after orphan removal
   const stillActiveExecutions = activeExecutions.filter(
     (e) => e.status === 'running',
   );
@@ -247,6 +246,7 @@ export function reconcile(
   return {
     actions,
     state: { workflow, task, activeExecutions },
+    cancelledExecutions,
   };
 }
 
@@ -320,13 +320,6 @@ export function completeExecution(
     throw new Error(`Execution ${executionId} not found in active executions`);
   }
 
-  const completedExecution: Execution = {
-    ...execution,
-    status: outcome,
-    completed_at: now,
-    error,
-  };
-
   const remainingActive = state.activeExecutions.filter(
     (e) => e.id !== executionId,
   );
@@ -361,7 +354,8 @@ export function completeExecution(
   return {
     workflow: updatedWorkflow,
     task: updatedTask,
-    activeExecutions: [...remainingActive, completedExecution],
+    // activeExecutions holds only running execs; completed/failed records are not re-appended
+    activeExecutions: remainingActive,
   };
 }
 

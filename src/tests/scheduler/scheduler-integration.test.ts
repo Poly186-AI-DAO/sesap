@@ -142,12 +142,17 @@ describe('Scheduler Integration: orphan cleanup unblocks valid runs', () => {
     expect(store.read().workflow.execution_status).toBe('not_started');
   });
 
-  it('reconcile() marks orphaned execution as cancelled (persisted)', () => {
-    store.reconcile(CYCLE_START);
-    const allExecs = store.read().activeExecutions;
-    const orphan = allExecs.find((e) => e.id === 'orphan-exec-1');
+  it('reconcile() reports cancelled orphan in result (for persistence)', () => {
+    const result = store.reconcile(CYCLE_START);
+    const orphan = result.cancelledExecutions.find((e) => e.id === 'orphan-exec-1');
     expect(orphan?.status).toBe('cancelled');
     expect(orphan?.error).toMatch(/Orphaned/);
+  });
+
+  it('after reconcile(), activeExecutions contains only running-status entries (invariant)', () => {
+    store.reconcile(CYCLE_START);
+    const allStatuses = store.read().activeExecutions.map((e) => e.status);
+    expect(allStatuses.every((s) => s === 'running')).toBe(true);
   });
 
   it('after reconcile(), concurrency check allows a new execution', () => {
@@ -202,6 +207,8 @@ describe('Scheduler Integration: duplicate enqueue prevention', () => {
     const afterState = store.read();
     expect(afterState.workflow.execution_status).toBe('not_started');
     expect(afterState.task.next_recurrence_date!.getTime()).toBeGreaterThan(t2.getTime());
+    // activeExecutions must be empty (strictly running-only invariant — nothing running after complete)
+    expect(afterState.activeExecutions).toHaveLength(0);
   });
 });
 

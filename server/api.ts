@@ -186,6 +186,7 @@ app.post('/api/scheduler/reconcile', (_req: Request, res: Response) => {
     workflow: schedulerState.workflow,
     task: schedulerState.task,
     activeExecutions: schedulerState.activeExecutions,
+    cancelledExecutions: result.cancelledExecutions,
   });
 });
 

@@ -237,7 +237,7 @@ describe('reconcile', () => {
     });
     const result = reconcile(state, NOW);
     expect(result.actions.some((a) => a.type === 'clear_orphaned')).toBe(true);
-    const cancelledExec = result.state.activeExecutions.find((e) => e.id === orphaned.id);
+    const cancelledExec = result.cancelledExecutions.find((e) => e.id === orphaned.id);
     expect(cancelledExec?.status).toBe('cancelled');
   });
 

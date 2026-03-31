@@ -94,6 +94,8 @@ export interface ReconciliationAction {
 export interface ReconciliationResult {
   actions: ReconciliationAction[];
   state: SchedulerState;
+  /** Executions cancelled during this reconciliation cycle. Callers should persist these records. */
+  cancelledExecutions: Execution[];
 }
 
 /** Result of the concurrency check before starting a new execution */
