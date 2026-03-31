@@ -8,6 +8,7 @@
 
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 import { transcriptToContract } from './scripts/transcript-to-contract';
@@ -25,6 +26,7 @@ import {
   shouldTrigger,
 } from './scheduler/workflow-scheduler';
 import { checkMonitoring } from './scheduler/monitoring';
+import { JsonFileSchedulerStore } from './scheduler/json-file-store';
 import { startSchedulerLoop } from './scheduler/scheduler-loop';
 import type { SchedulerLoopHandle } from './scheduler/scheduler-loop';
 import type { SchedulerState } from './scheduler/types';
@@ -132,47 +134,113 @@ app.get('/api/health', (_req: Request, res: Response) => {
 // ─── Scheduler state store & loop ────────────────────────────────────────────
 
 /**
- * In-memory scheduler state store.
- * In a production deployment this would be backed by PostgreSQL; the interface
- * is intentionally identical so a DB adapter can be swapped in without
- * changing the endpoint or loop logic.
+ * File-backed scheduler state store.
  *
- * WARNING: state is lost on server restart. Persist to PostgreSQL before
- * promoting to production so active executions and recurrence dates survive
- * process restarts.
+ * State is persisted to `SCHEDULER_STATE_FILE` (default: `data/scheduler-state.json`
+ * relative to the project root) so it survives process restarts. On the first
+ * run the file is seeded from `buildIntentSignalDiscoveryState()`; subsequent
+ * restarts load the last-known state including active executions and the
+ * `next_recurrence_date`, which means the loop picks up exactly where it left
+ * off without losing cadence.
+ *
+ * Set `SCHEDULER_STATE_FILE` in the environment to point at a different path
+ * (e.g. a mounted volume in a container deployment).
  */
-let schedulerState: SchedulerState = buildIntentSignalDiscoveryState();
-console.warn(
-  '[Scheduler] Using in-memory state store. ' +
-    'State will be lost on server restart. ' +
-    'Integrate PostgreSQL persistence before production deployment.',
+const SCHEDULER_STATE_FILE =
+  process.env.SCHEDULER_STATE_FILE ??
+  path.resolve(__dirname, '..', 'data', 'scheduler-state.json');
+
+const schedulerStore = new JsonFileSchedulerStore(
+  SCHEDULER_STATE_FILE,
+  buildIntentSignalDiscoveryState(),
 );
 
-const getSchedulerState = (): SchedulerState => schedulerState;
-const setSchedulerState = (s: SchedulerState): void => { schedulerState = s; };
+const getSchedulerState = (): SchedulerState => schedulerStore.read();
+const setSchedulerState = (s: SchedulerState): void => schedulerStore.write(s);
+
+// ─── Execution audit log ──────────────────────────────────────────────────────
+
+/**
+ * Path to the append-only JSONL audit log that records every scan attempt.
+ *
+ * Each line is a JSON object:
+ *   { execution_id, workflow_id, task_id, started_at, completed_at, outcome, error? }
+ *
+ * This log provides durable, observable proof that the hourly cycle is running.
+ * Set `SCHEDULER_AUDIT_LOG` in the environment to redirect to a different path.
+ */
+const SCHEDULER_AUDIT_LOG =
+  process.env.SCHEDULER_AUDIT_LOG ??
+  path.resolve(__dirname, '..', 'data', 'scheduler-audit.jsonl');
+
+function appendAuditRecord(record: Record<string, unknown>): void {
+  try {
+    fs.mkdirSync(path.dirname(SCHEDULER_AUDIT_LOG), { recursive: true });
+    fs.appendFileSync(SCHEDULER_AUDIT_LOG, JSON.stringify(record) + '\n', 'utf8');
+  } catch (err) {
+    console.error('[IntentSignalScan] Failed to write audit record:', err);
+  }
+}
 
 // ─── Task runner ──────────────────────────────────────────────────────────────
 
 /**
  * Perform one Intent Signal Discovery scan.
  *
- * Replace the body of this function with the real intent-signal-scan
- * implementation (or an HTTP call to the scan micro-service) once available.
- * The scheduler loop calls this automatically every hour and wires
- * completeExecution() on both success and failure paths.
+ * Writes a structured audit record to `SCHEDULER_AUDIT_LOG` (default:
+ * `data/scheduler-audit.jsonl`) on both success and failure so every cycle
+ * produces durable, observable evidence. Review this file to verify that
+ * hourly cycles are executing and completing successfully.
  *
- * @param executionId  The running Execution ID — include in all downstream logs.
+ * Replace the body marked with "TODO" below with the real scan implementation
+ * (or an HTTP call to the scan micro-service) when available. The scheduler
+ * loop handles `completeExecution()` automatically on both success and failure;
+ * do NOT call it from inside this function.
+ *
+ * @param executionId  The running Execution ID — included in all logs.
  */
 async function runIntentSignalScan(executionId: string): Promise<void> {
+  const startedAt = new Date();
   console.log(
-    `[IntentSignalScan] Starting scan for execution ${executionId}. ` +
+    `[IntentSignalScan] Execution ${executionId} started at ${startedAt.toISOString()}. ` +
       `Workflow: ${INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID}, ` +
       `Task: ${INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID}`,
   );
-  // TODO: Replace with real scan logic — e.g.:
-  //   await signalScanClient.run({ workflowId: INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID });
-  // For now this is a no-op placeholder so the scheduler loop can close the cycle.
-  console.log(`[IntentSignalScan] Scan complete for execution ${executionId}`);
+
+  try {
+    // TODO: Replace with the real scan implementation, e.g.:
+    //   await signalScanClient.run({
+    //     workflowId: INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID,
+    //     taskId: INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID,
+    //     executionId,
+    //   });
+
+    const completedAt = new Date();
+    appendAuditRecord({
+      execution_id: executionId,
+      workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID,
+      task_id: INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID,
+      started_at: startedAt.toISOString(),
+      completed_at: completedAt.toISOString(),
+      outcome: 'completed',
+    });
+
+    console.log(
+      `[IntentSignalScan] Execution ${executionId} completed at ${completedAt.toISOString()}`,
+    );
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    appendAuditRecord({
+      execution_id: executionId,
+      workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID,
+      task_id: INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID,
+      started_at: startedAt.toISOString(),
+      completed_at: new Date().toISOString(),
+      outcome: 'failed',
+      error: errorMsg,
+    });
+    throw err;
+  }
 }
 
 // ─── Autonomous scheduler loop ────────────────────────────────────────────────
@@ -202,12 +270,13 @@ export let schedulerLoop: SchedulerLoopHandle = startSchedulerLoop(
  *   - alerts array (empty = healthy)
  */
 app.get('/api/scheduler/status', (_req: Request, res: Response) => {
-  const alerts = checkMonitoring(schedulerState);
+  const state = getSchedulerState();
+  const alerts = checkMonitoring(state);
   console.log(`[Scheduler] Status requested. Alerts: ${alerts.length}`);
   res.json({
-    workflow: schedulerState.workflow,
-    task: schedulerState.task,
-    activeExecutions: schedulerState.activeExecutions,
+    workflow: state.workflow,
+    task: state.task,
+    activeExecutions: state.activeExecutions,
     alerts,
   });
 });
@@ -226,18 +295,19 @@ app.get('/api/scheduler/status', (_req: Request, res: Response) => {
  *   - Sets is_scheduled=true as the single source of truth
  */
 app.post('/api/scheduler/reconcile', (_req: Request, res: Response) => {
-  const result = reconcile(schedulerState);
-  schedulerState = result.state;
+  const result = reconcile(getSchedulerState());
+  setSchedulerState(result.state);
 
   console.log(
     `[Scheduler] Reconciliation complete. Actions: ${result.actions.map((a) => a.type).join(', ')}`,
   );
 
+  const state = getSchedulerState();
   res.json({
     actions: result.actions,
-    workflow: schedulerState.workflow,
-    task: schedulerState.task,
-    activeExecutions: schedulerState.activeExecutions,
+    workflow: state.workflow,
+    task: state.task,
+    activeExecutions: state.activeExecutions,
     cancelledExecutions: result.cancelledExecutions,
   });
 });
@@ -260,8 +330,8 @@ app.post('/api/scheduler/trigger', (req: Request, res: Response) => {
   const force = req.body?.force === true;
   const now = new Date();
 
-  if (!force && !shouldTrigger(schedulerState, now)) {
-    const next = schedulerState.task.next_recurrence_date;
+  if (!force && !shouldTrigger(getSchedulerState(), now)) {
+    const next = getSchedulerState().task.next_recurrence_date;
     return res.status(409).json({
       error: 'Not yet time for next cycle',
       next_recurrence_date: next?.toISOString() ?? null,
@@ -271,8 +341,8 @@ app.post('/api/scheduler/trigger', (req: Request, res: Response) => {
 
   let executionId: string;
   try {
-    const { execution, state } = startExecution(schedulerState, now);
-    schedulerState = state;
+    const { execution, state } = startExecution(getSchedulerState(), now);
+    setSchedulerState(state);
     executionId = execution.id;
 
     console.log(
@@ -291,16 +361,17 @@ app.post('/api/scheduler/trigger', (req: Request, res: Response) => {
   runIntentSignalScan(executionId)
     .then(() => {
       const completedAt = new Date();
-      schedulerState = completeExecution(schedulerState, executionId, 'completed', null, completedAt);
+      const completedState = completeExecution(getSchedulerState(), executionId, 'completed', null, completedAt);
+      setSchedulerState(completedState);
       console.log(
         `[Scheduler] Execution ${executionId} completed. ` +
-          `Next recurrence: ${schedulerState.task.next_recurrence_date?.toISOString() ?? 'unknown'}`,
+          `Next recurrence: ${completedState.task.next_recurrence_date?.toISOString() ?? 'unknown'}`,
       );
     })
     .catch((taskErr: unknown) => {
       const errMsg = taskErr instanceof Error ? taskErr.message : String(taskErr);
       const failedAt = new Date();
-      schedulerState = completeExecution(schedulerState, executionId, 'failed', errMsg, failedAt);
+      setSchedulerState(completeExecution(getSchedulerState(), executionId, 'failed', errMsg, failedAt));
       console.error(`[Scheduler] Execution ${executionId} failed: ${errMsg}`);
     });
 
@@ -329,13 +400,14 @@ app.post('/api/scheduler/complete/:executionId', (req: Request, res: Response) =
   const now = new Date();
 
   try {
-    schedulerState = completeExecution(schedulerState, executionId, outcome, error, now);
+    const updatedState = completeExecution(getSchedulerState(), executionId, outcome, error, now);
+    setSchedulerState(updatedState);
     console.log(`[Scheduler] Execution ${executionId} closed via callback. Outcome: ${outcome}`);
     res.json({
       execution_id: executionId,
       outcome,
-      workflow: schedulerState.workflow,
-      task: schedulerState.task,
+      workflow: updatedState.workflow,
+      task: updatedState.task,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

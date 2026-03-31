@@ -1,8 +1,7 @@
 /**
  * Scheduler Integration Tests
  *
- * End-to-end lifecycle tests using the in-memory state store as the persistence
- * layer. These tests prove the full scenario described in issue #10:
+ * End-to-end lifecycle tests proving the full scenario described in issue #10:
  *
  *   1. Orphaned executions are auto-cancelled by reconcile() and removed from
  *      the concurrency-active-count, unblocking the next valid run.
@@ -15,6 +14,10 @@
  *      the state unchanged.
  *   6. Multi-cycle simulation: five consecutive hourly cycles all succeed and
  *      leave the system in a healthy state.
+ *   7. Persistence: state written to a JSON file is reloaded correctly after a
+ *      simulated process restart, including Date fields and execution history.
+ *   8. Restart-survival: an in-flight execution that was never completed is
+ *      detected as orphaned and cancelled by reconcile() after restart.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -32,6 +35,10 @@ import {
   INTENT_SIGNAL_DISCOVERY_TASK_ID,
   INTENT_SIGNAL_DISCOVERY_WORKFLOW_ID,
 } from '../../../server/scheduler/intent-signal-discovery';
+import {
+  serializeSchedulerState,
+  deserializeSchedulerState,
+} from '../../../server/scheduler/json-file-store';
 import type { Execution, SchedulerState } from '../../../server/scheduler/types';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -392,5 +399,130 @@ describe('Scheduler Integration: multi-cycle simulation (6-hour window)', () => 
     // Each cycle should advance updated_at
     expect(updatedAts[1]).toBeGreaterThan(updatedAts[0]);
     expect(updatedAts[2]).toBeGreaterThan(updatedAts[1]);
+  });
+});
+
+// ─── Persistence: serialization round-trip tests ───────────────────────────────
+
+/**
+ * These tests verify that SchedulerState can be serialized to JSON and
+ * deserialized back with all Date objects intact — which is the critical
+ * invariant for restart-survival. The serialization/deserialization logic is
+ * the same code path that runs during file read/write in JsonFileSchedulerStore.
+ *
+ * This approach avoids real file I/O (which is not available in jsdom) while
+ * still proving the persistence round-trip semantics used by the file store.
+ */
+describe('Scheduler Persistence: serialization round-trip survives simulated restart', () => {
+  /**
+   * Simulate a "write to disk + restart + read from disk" by serializing state
+   * to a JSON string and deserializing it back. This is exactly what
+   * JsonFileSchedulerStore does on write() + read() across a restart boundary.
+   */
+  function simulateRestart(state: SchedulerState): SchedulerState {
+    return deserializeSchedulerState(serializeSchedulerState(state));
+  }
+
+  it('completed cycle state is reloaded correctly after simulated restart', () => {
+    const seedState = buildIntentSignalDiscoveryState(CYCLE_START);
+
+    // Run one cycle
+    const t1 = new Date(CYCLE_START.getTime() + 3600_000 + 1);
+    const { execution, state: startedState } = startExecution(seedState, t1);
+
+    const t2 = new Date(t1.getTime() + 5 * 60_000);
+    const completedState = completeExecution(startedState, execution.id, 'completed', null, t2);
+
+    // Simulate process restart: serialize → JSON string → deserialize
+    const reloaded = simulateRestart(completedState);
+
+    // Cycle state must round-trip correctly
+    expect(reloaded.workflow.execution_status).toBe('not_started');
+
+    // last_cycle_completed_at must come back as a real Date, not a string
+    expect(reloaded.workflow.last_cycle_completed_at).toBeInstanceOf(Date);
+    expect(reloaded.workflow.last_cycle_completed_at!.getTime()).toBe(t2.getTime());
+
+    // next_recurrence_date must be a real Date pointing to +1h after completion
+    expect(reloaded.task.next_recurrence_date).toBeInstanceOf(Date);
+    expect(reloaded.task.next_recurrence_date!.getTime()).toBe(t2.getTime() + 3600_000);
+
+    // activeExecutions must be empty (strictly running-only invariant)
+    expect(reloaded.activeExecutions).toHaveLength(0);
+  });
+
+  it('in-flight execution survives restart and is detected as orphaned by reconcile()', () => {
+    const seedState = buildIntentSignalDiscoveryState(CYCLE_START);
+
+    // Start an execution and "crash" before completing it
+    const t1 = new Date(CYCLE_START.getTime() + 3600_000 + 1);
+    const { state: startedState } = startExecution(seedState, t1);
+
+    // Persist the in-flight state (write to disk), then restart (deserialize)
+    const restartTime = new Date(t1.getTime() + EXECUTION_TIMEOUT_MS + 60_000);
+    const reloaded = simulateRestart(startedState);
+
+    // On restart the in-flight execution is still in activeExecutions (persisted)
+    expect(reloaded.workflow.execution_status).toBe('running');
+    expect(reloaded.activeExecutions).toHaveLength(1);
+    // The active execution's started_at must be a Date, not a string
+    expect(reloaded.activeExecutions[0].started_at).toBeInstanceOf(Date);
+
+    // reconcile() detects the orphan and cancels it
+    const { actions, cancelledExecutions } = reconcile(reloaded, restartTime);
+    const actionTypes = actions.map((a) => a.type);
+    expect(actionTypes).toContain('clear_orphaned');
+    expect(cancelledExecutions).toHaveLength(1);
+    expect(cancelledExecutions[0].status).toBe('cancelled');
+
+    // After reconcile, concurrency gate is open for the next valid execution
+    const reconciledState = reconcile(reloaded, restartTime).state;
+    expect(checkConcurrency(reconciledState, restartTime).allowed).toBe(true);
+  });
+
+  it('stale next_recurrence_date is advanced to the future after restart + reconcile()', () => {
+    // Build a drifted state: next_recurrence_date 2 hours in the past
+    const staleDate = new Date(CYCLE_START.getTime() - 2 * 3600_000);
+    const driftedState = buildIntentSignalDiscoveryState(CYCLE_START);
+    driftedState.task.next_recurrence_date = staleDate;
+    driftedState.task.updated_at = staleDate;
+    driftedState.workflow.execution_status = 'running';
+
+    // Persist and reload (simulates a pre-existing stuck state that survives restart)
+    const reloaded = simulateRestart(driftedState);
+
+    // Confirm stale date survived the round-trip as a Date object
+    expect(reloaded.task.next_recurrence_date).toBeInstanceOf(Date);
+    expect(reloaded.task.next_recurrence_date!.getTime()).toBe(staleDate.getTime());
+
+    // reconcile() must advance the stale date to the future
+    const { actions } = reconcile(reloaded, CYCLE_START);
+    const actionTypes = actions.map((a) => a.type);
+    expect(actionTypes).toContain('advance_recurrence');
+
+    const reconciledState = reconcile(reloaded, CYCLE_START).state;
+    expect(reconciledState.task.next_recurrence_date!.getTime()).toBeGreaterThan(
+      CYCLE_START.getTime(),
+    );
+  });
+
+  it('all date fields deserialize as Date instances (not strings)', () => {
+    const seedState = buildIntentSignalDiscoveryState(CYCLE_START);
+
+    // Complete one cycle to populate all date fields
+    const t1 = new Date(CYCLE_START.getTime() + 3600_000 + 1);
+    const { execution, state: startedState } = startExecution(seedState, t1);
+    const t2 = new Date(t1.getTime() + 3 * 60_000);
+    const completedState = completeExecution(startedState, execution.id, 'completed', null, t2);
+
+    const reloaded = simulateRestart(completedState);
+
+    // Verify all date fields are Date instances, not strings
+    expect(reloaded.workflow.created_at).toBeInstanceOf(Date);
+    expect(reloaded.workflow.updated_at).toBeInstanceOf(Date);
+    expect(reloaded.workflow.last_cycle_completed_at).toBeInstanceOf(Date);
+    expect(reloaded.task.created_at).toBeInstanceOf(Date);
+    expect(reloaded.task.updated_at).toBeInstanceOf(Date);
+    expect(reloaded.task.next_recurrence_date).toBeInstanceOf(Date);
   });
 });
