@@ -22,16 +22,31 @@ import { computeNextRecurrenceDate } from './workflow-scheduler';
 
 // ─── Well-known identifiers ───────────────────────────────────────────────────
 
-/** Workflow ID as recorded in Poly Operations */
+/** Workflow UUID as recorded in Poly Operations */
 export const INTENT_SIGNAL_DISCOVERY_WORKFLOW_ID =
   'c10f1d63-0e63-4c03-bfea-aa16c31d2a6a';
 
 /** Version string as recorded in Poly Operations */
 export const INTENT_SIGNAL_DISCOVERY_WORKFLOW_VERSION = '1.0';
 
-/** Hourly task ID as recorded in Poly Operations */
+/**
+ * Fully-qualified workflow identifier including version suffix
+ * (e.g. `c10f1d63-0e63-4c03-bfea-aa16c31d2a6a::1.0`)
+ * Matches the format used in Poly Operations escalation records.
+ */
+export const INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID =
+  `${INTENT_SIGNAL_DISCOVERY_WORKFLOW_ID}::${INTENT_SIGNAL_DISCOVERY_WORKFLOW_VERSION}`;
+
+/** Hourly task UUID as recorded in Poly Operations */
 export const INTENT_SIGNAL_DISCOVERY_TASK_ID =
   '8c929111-2380-49bb-b07d-e6c2429927c3';
+
+/**
+ * Fully-qualified task identifier including version suffix
+ * (e.g. `8c929111-2380-49bb-b07d-e6c2429927c3::1.0`)
+ */
+export const INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID =
+  `${INTENT_SIGNAL_DISCOVERY_TASK_ID}::${INTENT_SIGNAL_DISCOVERY_WORKFLOW_VERSION}`;
 
 // ─── Seed / reset factory ─────────────────────────────────────────────────────
 
