@@ -79,15 +79,21 @@ export function hasStateDrift(state: SchedulerState): boolean {
 }
 
 /**
- * Return all executions that have been running longer than EXECUTION_TIMEOUT_MS.
+ * Return all executions that are still in `running` status and have been
+ * running longer than EXECUTION_TIMEOUT_MS.
  * These are "orphaned" – they will never complete on their own.
+ *
+ * Non-running executions (completed, failed, cancelled) stored in
+ * activeExecutions for history are excluded.
  */
 export function findOrphanedExecutions(
   state: SchedulerState,
   now: Date = new Date(),
 ): Execution[] {
   return state.activeExecutions.filter(
-    (exec) => now.getTime() - exec.started_at.getTime() > EXECUTION_TIMEOUT_MS,
+    (exec) =>
+      exec.status === 'running' &&
+      now.getTime() - exec.started_at.getTime() > EXECUTION_TIMEOUT_MS,
   );
 }
 
@@ -119,7 +125,9 @@ export function checkConcurrency(
   now: Date = new Date(),
 ): ConcurrencyCheck {
   const nonOrphaned = state.activeExecutions.filter(
-    (e) => now.getTime() - e.started_at.getTime() <= EXECUTION_TIMEOUT_MS,
+    (e) =>
+      e.status === 'running' &&
+      now.getTime() - e.started_at.getTime() <= EXECUTION_TIMEOUT_MS,
   );
   if (nonOrphaned.length >= MAX_CONCURRENT_EXECUTIONS) {
     return {
