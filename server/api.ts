@@ -145,6 +145,14 @@ app.get('/api/health', (_req: Request, res: Response) => {
  *
  * Set `SCHEDULER_STATE_FILE` in the environment to point at a different path
  * (e.g. a mounted volume in a container deployment).
+ *
+ * **Production persistence wiring plan**: `JsonFileSchedulerStore` exposes the
+ * same `read()` / `write()` interface a PostgreSQL adapter will expose. Swapping
+ * to PostgreSQL requires replacing only the ~10 lines below with a
+ * `PostgresSchedulerStore` instance — no changes to the scheduler loop or API
+ * endpoints. See `docs/SCHEDULER_PERSISTENCE_ADAPTER.md` for the full field
+ * mapping (Poly Operations workflow/task/execution rows ↔ `SchedulerState`) and
+ * the step-by-step migration plan.
  */
 const SCHEDULER_STATE_FILE =
   process.env.SCHEDULER_STATE_FILE ??
