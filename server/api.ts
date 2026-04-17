@@ -195,49 +195,72 @@ function appendAuditRecord(record: Record<string, unknown>): void {
 /**
  * Perform one Intent Signal Discovery scan.
  *
- * Writes a structured audit record to `SCHEDULER_AUDIT_LOG` (default:
- * `data/scheduler-audit.jsonl`) on both success and failure so every cycle
- * produces durable, observable evidence. Review this file to verify that
- * hourly cycles are executing and completing successfully.
+ * Dispatches to the scan service via HTTP POST to `INTENT_SIGNAL_SCAN_URL`.
+ * Set this environment variable to the URL of the intent-signal scan endpoint
+ * (e.g. `http://scan-service:8080/api/intent-signal/run`).
  *
- * Replace the body marked with "TODO" below with the real scan implementation
- * (or an HTTP call to the scan micro-service) when available. The scheduler
- * loop handles `completeExecution()` automatically on both success and failure;
- * do NOT call it from inside this function.
+ * The request body is:
+ *   { workflow_id, task_id, execution_id }
  *
- * @param executionId  The running Execution ID — included in all logs.
+ * A 2xx response is treated as success.  Any non-2xx response or network error
+ * is treated as failure — the error is logged, written to the audit log, and
+ * re-thrown so the scheduler loop marks the execution as failed.
+ *
+ * If `INTENT_SIGNAL_SCAN_URL` is not set the function throws immediately so
+ * executions fail honestly rather than writing a false-positive "completed"
+ * audit record.
+ *
+ * The scheduler loop calls `completeExecution()` automatically on both success
+ * and failure; do NOT call it from inside this function.
+ *
+ * @param executionId  The running Execution ID — included in all logs and the
+ *                     request body so the downstream service can correlate.
  */
 async function runIntentSignalScan(executionId: string): Promise<void> {
+  const scanUrl = process.env.INTENT_SIGNAL_SCAN_URL;
+  if (!scanUrl) {
+    throw new Error(
+      'INTENT_SIGNAL_SCAN_URL is not configured. ' +
+        'Set this environment variable to the URL of the intent-signal scan endpoint ' +
+        'to enable real scan execution.',
+    );
+  }
+
   const startedAt = new Date();
   console.log(
     `[IntentSignalScan] Execution ${executionId} started at ${startedAt.toISOString()}. ` +
       `Workflow: ${INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID}, ` +
-      `Task: ${INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID}`,
+      `Task: ${INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID}, ` +
+      `URL: ${scanUrl}`,
   );
 
+  let response: Response;
   try {
-    // TODO: Replace with the real scan implementation, e.g.:
-    //   await signalScanClient.run({
-    //     workflowId: INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID,
-    //     taskId: INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID,
-    //     executionId,
-    //   });
-
-    const completedAt = new Date();
+    response = await fetch(scanUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID,
+        task_id: INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID,
+        execution_id: executionId,
+      }),
+    }) as unknown as Response;
+  } catch (networkErr) {
+    const errorMsg = networkErr instanceof Error ? networkErr.message : String(networkErr);
     appendAuditRecord({
       execution_id: executionId,
       workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID,
       task_id: INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID,
       started_at: startedAt.toISOString(),
-      completed_at: completedAt.toISOString(),
-      outcome: 'completed',
+      completed_at: new Date().toISOString(),
+      outcome: 'failed',
+      error: `Network error: ${errorMsg}`,
     });
+    throw networkErr;
+  }
 
-    console.log(
-      `[IntentSignalScan] Execution ${executionId} completed at ${completedAt.toISOString()}`,
-    );
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
+  if (!response.ok) {
+    const errorMsg = `Scan service returned HTTP ${response.status}: ${response.statusText}`;
     appendAuditRecord({
       execution_id: executionId,
       workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID,
@@ -247,8 +270,22 @@ async function runIntentSignalScan(executionId: string): Promise<void> {
       outcome: 'failed',
       error: errorMsg,
     });
-    throw err;
+    throw new Error(errorMsg);
   }
+
+  const completedAt = new Date();
+  appendAuditRecord({
+    execution_id: executionId,
+    workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID,
+    task_id: INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID,
+    started_at: startedAt.toISOString(),
+    completed_at: completedAt.toISOString(),
+    outcome: 'completed',
+  });
+
+  console.log(
+    `[IntentSignalScan] Execution ${executionId} completed at ${completedAt.toISOString()}`,
+  );
 }
 
 // ─── Autonomous scheduler loop ────────────────────────────────────────────────

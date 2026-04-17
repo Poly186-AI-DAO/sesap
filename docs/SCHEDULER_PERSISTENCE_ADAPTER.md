@@ -124,6 +124,28 @@ This file is the durable, observable proof that hourly cycles are executing.
 In a PostgreSQL environment this record should also be written to a
 `scheduler_audit` table so it survives across container restarts.
 
+## Scan service integration
+
+`runIntentSignalScan()` requires the `INTENT_SIGNAL_SCAN_URL` environment variable.
+When set, it `POST`s the following JSON body to that URL:
+
+```json
+{
+  "workflow_id": "c10f1d63-0e63-4c03-bfea-aa16c31d2a6a::1.0",
+  "task_id": "8c929111-2380-49bb-b07d-e6c2429927c3::1.0",
+  "execution_id": "<uuid>"
+}
+```
+
+A `2xx` response is treated as success. Any non-`2xx` response or network error
+causes the execution to be recorded as `failed` in the audit log and the
+scheduler lifecycle to mark the execution failed (so `reconcile()` can
+clean it up on the next tick if it becomes orphaned).
+
+If `INTENT_SIGNAL_SCAN_URL` is not set, `runIntentSignalScan()` throws
+immediately so executions fail honestly rather than writing false-positive
+"completed" audit records.
+
 ---
 
 ## Related files
