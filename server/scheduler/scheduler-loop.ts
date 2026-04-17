@@ -30,6 +30,7 @@ import {
   startExecution,
 } from './workflow-scheduler';
 import type { SchedulerState } from './types';
+import { ExecutionStatus, ReconciliationActionType } from './types';
 
 // ─── Public API types ─────────────────────────────────────────────────────────
 
@@ -108,7 +109,7 @@ export function startSchedulerLoop(
       } = reconcile(getState(), now);
       setState(reconciledState);
 
-      const actionTypes = actions.map((a) => a.type).filter((t) => t !== 'none');
+      const actionTypes = actions.map((a) => a.type).filter((t) => t !== ReconciliationActionType.NONE);
       if (actionTypes.length > 0) {
         console.log(`[SchedulerLoop] Reconcile applied: ${actionTypes.join(', ')}`);
       }
@@ -150,13 +151,13 @@ export function startSchedulerLoop(
       }
 
       // ── 4. Run the actual task work ───────────────────────────────────────
-      let outcome: 'completed' | 'failed' = 'completed';
+      let outcome: ExecutionStatus.COMPLETED | ExecutionStatus.FAILED = ExecutionStatus.COMPLETED;
       let taskError: string | null = null;
 
       try {
         await runTask(executionId);
       } catch (taskErr) {
-        outcome = 'failed';
+        outcome = ExecutionStatus.FAILED;
         taskError = taskErr instanceof Error ? taskErr.message : String(taskErr);
         console.error(
           `[SchedulerLoop] Execution ${executionId} failed: ${taskError}`,
@@ -166,7 +167,7 @@ export function startSchedulerLoop(
       // ── 5. Complete execution and roll next_recurrence_date forward ───────
       setState(completeExecution(getState(), executionId, outcome, taskError, now));
 
-      if (outcome === 'completed') {
+      if (outcome === ExecutionStatus.COMPLETED) {
         console.log(
           `[SchedulerLoop] Execution ${executionId} completed. ` +
             `Next recurrence: ${getState().task.next_recurrence_date?.toISOString() ?? 'unknown'}`,

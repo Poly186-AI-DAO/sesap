@@ -26,6 +26,12 @@ import {
   INTENT_SIGNAL_DISCOVERY_TASK_ID,
   INTENT_SIGNAL_DISCOVERY_WORKFLOW_VERSION,
 } from '../../../server/scheduler/intent-signal-discovery';
+import {
+  ExecutionStatus,
+  MonitoringAlertType,
+  ReconciliationActionType,
+  RecurrencePattern,
+} from '../../../server/scheduler/types';
 import type { Execution, SchedulerState, Task } from '../../../server/scheduler/types';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -45,7 +51,7 @@ function makeRunningExecution(
     id,
     task_id: INTENT_SIGNAL_DISCOVERY_TASK_ID,
     workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_ID,
-    status: 'running',
+    status: ExecutionStatus.RUNNING,
     started_at: new Date(NOW.getTime() - startedMsAgo),
     completed_at: null,
     error: null,
@@ -57,32 +63,32 @@ function makeRunningExecution(
 describe('computeNextRecurrenceDate', () => {
   it('adds 1 hour for hourly pattern', () => {
     const base = new Date('2026-03-25T10:00:00Z');
-    const next = computeNextRecurrenceDate('hourly', base);
+    const next = computeNextRecurrenceDate(RecurrencePattern.HOURLY, base);
     expect(next.getTime()).toBe(new Date('2026-03-25T11:00:00Z').getTime());
   });
 
   it('adds 1 day for daily pattern', () => {
     const base = new Date('2026-03-25T10:00:00Z');
-    const next = computeNextRecurrenceDate('daily', base);
+    const next = computeNextRecurrenceDate(RecurrencePattern.DAILY, base);
     expect(next.getTime()).toBe(new Date('2026-03-26T10:00:00Z').getTime());
   });
 
   it('adds 7 days for weekly pattern', () => {
     const base = new Date('2026-03-25T10:00:00Z');
-    const next = computeNextRecurrenceDate('weekly', base);
+    const next = computeNextRecurrenceDate(RecurrencePattern.WEEKLY, base);
     expect(next.getTime()).toBe(new Date('2026-04-01T10:00:00Z').getTime());
   });
 
   it('adds 1 month for monthly pattern', () => {
     const base = new Date('2026-03-25T10:00:00Z');
-    const next = computeNextRecurrenceDate('monthly', base);
+    const next = computeNextRecurrenceDate(RecurrencePattern.MONTHLY, base);
     expect(next.getMonth()).toBe(3); // April
   });
 
   it('does not mutate the input date', () => {
     const base = new Date('2026-03-25T10:00:00Z');
     const orig = base.getTime();
-    computeNextRecurrenceDate('hourly', base);
+    computeNextRecurrenceDate(RecurrencePattern.HOURLY, base);
     expect(base.getTime()).toBe(orig);
   });
 });
@@ -92,7 +98,7 @@ describe('computeNextRecurrenceDate', () => {
 describe('hasStateDrift', () => {
   it('returns true when workflow is RUNNING but no active executions', () => {
     const state = makeState({
-      workflow: { ...buildIntentSignalDiscoveryState(NOW).workflow, execution_status: 'running' },
+      workflow: { ...buildIntentSignalDiscoveryState(NOW).workflow, execution_status: ExecutionStatus.RUNNING },
       activeExecutions: [],
     });
     expect(hasStateDrift(state)).toBe(true);
@@ -100,7 +106,7 @@ describe('hasStateDrift', () => {
 
   it('returns false when workflow is RUNNING and has active executions', () => {
     const state = makeState({
-      workflow: { ...buildIntentSignalDiscoveryState(NOW).workflow, execution_status: 'running' },
+      workflow: { ...buildIntentSignalDiscoveryState(NOW).workflow, execution_status: ExecutionStatus.RUNNING },
       activeExecutions: [makeRunningExecution()],
     });
     expect(hasStateDrift(state)).toBe(false);
@@ -201,14 +207,14 @@ describe('reconcile', () => {
       },
     });
     const result = reconcile(state, NOW);
-    expect(result.actions.some((a) => a.type === 'none')).toBe(true);
+    expect(result.actions.some((a) => a.type === ReconciliationActionType.NONE)).toBe(true);
   });
 
   it('resets workflow state drift', () => {
     const driftState = makeState({
       workflow: {
         ...buildIntentSignalDiscoveryState(NOW).workflow,
-        execution_status: 'running',
+        execution_status: ExecutionStatus.RUNNING,
         is_scheduled: false,
       },
       activeExecutions: [],
@@ -218,8 +224,8 @@ describe('reconcile', () => {
       },
     });
     const result = reconcile(driftState, NOW);
-    expect(result.actions.some((a) => a.type === 'reset_workflow')).toBe(true);
-    expect(result.state.workflow.execution_status).toBe('not_started');
+    expect(result.actions.some((a) => a.type === ReconciliationActionType.RESET_WORKFLOW)).toBe(true);
+    expect(result.state.workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
   });
 
   it('cancels orphaned executions', () => {
@@ -227,7 +233,7 @@ describe('reconcile', () => {
     const state = makeState({
       workflow: {
         ...buildIntentSignalDiscoveryState(NOW).workflow,
-        execution_status: 'running',
+        execution_status: ExecutionStatus.RUNNING,
       },
       activeExecutions: [orphaned],
       task: {
@@ -236,9 +242,9 @@ describe('reconcile', () => {
       },
     });
     const result = reconcile(state, NOW);
-    expect(result.actions.some((a) => a.type === 'clear_orphaned')).toBe(true);
+    expect(result.actions.some((a) => a.type === ReconciliationActionType.CLEAR_ORPHANED)).toBe(true);
     const cancelledExec = result.cancelledExecutions.find((e) => e.id === orphaned.id);
-    expect(cancelledExec?.status).toBe('cancelled');
+    expect(cancelledExec?.status).toBe(ExecutionStatus.CANCELLED);
   });
 
   it('advances stale next_recurrence_date', () => {
@@ -248,7 +254,7 @@ describe('reconcile', () => {
     };
     const state = makeState({ task: staleTask });
     const result = reconcile(state, NOW);
-    expect(result.actions.some((a) => a.type === 'advance_recurrence')).toBe(true);
+    expect(result.actions.some((a) => a.type === ReconciliationActionType.ADVANCE_RECURRENCE)).toBe(true);
     expect(result.state.task.next_recurrence_date!.getTime()).toBeGreaterThan(NOW.getTime());
   });
 
@@ -262,7 +268,7 @@ describe('reconcile', () => {
       },
     });
     const result = reconcile(state, NOW);
-    expect(result.actions.some((a) => a.type === 'enable_scheduler')).toBe(true);
+    expect(result.actions.some((a) => a.type === ReconciliationActionType.ENABLE_SCHEDULER)).toBe(true);
     expect(result.state.workflow.is_scheduled).toBe(true);
   });
 
@@ -270,7 +276,7 @@ describe('reconcile', () => {
     const staleState = makeState({
       workflow: {
         ...buildIntentSignalDiscoveryState(NOW).workflow,
-        execution_status: 'running',
+        execution_status: ExecutionStatus.RUNNING,
         is_scheduled: false,
       },
       task: {
@@ -281,7 +287,7 @@ describe('reconcile', () => {
     });
     const first = reconcile(staleState, NOW);
     const second = reconcile(first.state, NOW);
-    expect(second.actions.every((a) => a.type === 'none')).toBe(true);
+    expect(second.actions.every((a) => a.type === ReconciliationActionType.NONE)).toBe(true);
   });
 });
 
@@ -290,9 +296,9 @@ describe('reconcile', () => {
 describe('startExecution', () => {
   it('creates a running execution and updates workflow/task status', () => {
     const { execution, state } = startExecution(makeState(), NOW);
-    expect(execution.status).toBe('running');
-    expect(state.workflow.execution_status).toBe('running');
-    expect(state.task.execution_status).toBe('running');
+    expect(execution.status).toBe(ExecutionStatus.RUNNING);
+    expect(state.workflow.execution_status).toBe(ExecutionStatus.RUNNING);
+    expect(state.task.execution_status).toBe(ExecutionStatus.RUNNING);
     expect(state.workflow.is_scheduled).toBe(true);
     expect(state.activeExecutions).toHaveLength(1);
   });
@@ -308,7 +314,7 @@ describe('startExecution', () => {
     // Reset to not_started so we can start another
     const resetState: SchedulerState = {
       ...s1,
-      workflow: { ...s1.workflow, execution_status: 'not_started' },
+      workflow: { ...s1.workflow, execution_status: ExecutionStatus.NOT_STARTED },
       activeExecutions: [],
     };
     const { execution: e2 } = startExecution(resetState, NOW);
@@ -319,24 +325,24 @@ describe('startExecution', () => {
 describe('completeExecution', () => {
   it('marks execution as completed and rolls next_recurrence_date forward', () => {
     const { execution, state: started } = startExecution(makeState(), NOW);
-    const completed = completeExecution(started, execution.id, 'completed', null, NOW);
+    const completed = completeExecution(started, execution.id, ExecutionStatus.COMPLETED, null, NOW);
 
-    expect(completed.workflow.execution_status).toBe('not_started');
+    expect(completed.workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
     expect(completed.workflow.last_cycle_completed_at?.getTime()).toBe(NOW.getTime());
-    expect(completed.task.execution_status).toBe('not_started');
+    expect(completed.task.execution_status).toBe(ExecutionStatus.NOT_STARTED);
     expect(completed.task.next_recurrence_date!.getTime()).toBeGreaterThan(NOW.getTime());
   });
 
   it('sets workflow to failed on failure', () => {
     const { execution, state: started } = startExecution(makeState(), NOW);
-    const failed = completeExecution(started, execution.id, 'failed', 'timeout', NOW);
-    expect(failed.workflow.execution_status).toBe('failed');
+    const failed = completeExecution(started, execution.id, ExecutionStatus.FAILED, 'timeout', NOW);
+    expect(failed.workflow.execution_status).toBe(ExecutionStatus.FAILED);
     expect(failed.workflow.last_cycle_completed_at).toBeNull(); // not updated on failure
   });
 
   it('throws when execution id is not found', () => {
     const { state: started } = startExecution(makeState(), NOW);
-    expect(() => completeExecution(started, 'nonexistent-id', 'completed')).toThrow();
+    expect(() => completeExecution(started, 'nonexistent-id', ExecutionStatus.COMPLETED)).toThrow();
   });
 });
 
@@ -403,7 +409,7 @@ describe('checkMissedCadence', () => {
   it('alerts when last_cycle_completed_at is null', () => {
     const alert = checkMissedCadence(makeState(), NOW);
     expect(alert).not.toBeNull();
-    expect(alert?.type).toBe('missed_cadence');
+    expect(alert?.type).toBe(MonitoringAlertType.MISSED_CADENCE);
   });
 
   it('alerts when last cycle was over threshold ago', () => {
@@ -414,7 +420,7 @@ describe('checkMissedCadence', () => {
       },
     });
     const alert = checkMissedCadence(state, NOW);
-    expect(alert?.type).toBe('missed_cadence');
+    expect(alert?.type).toBe(MonitoringAlertType.MISSED_CADENCE);
   });
 
   it('returns null when last cycle was within threshold', () => {
@@ -433,12 +439,12 @@ describe('checkStateDrift (monitoring)', () => {
     const state = makeState({
       workflow: {
         ...buildIntentSignalDiscoveryState(NOW).workflow,
-        execution_status: 'running',
+        execution_status: ExecutionStatus.RUNNING,
       },
       activeExecutions: [],
     });
     const alert = checkStateDrift(state, NOW);
-    expect(alert?.type).toBe('state_drift');
+    expect(alert?.type).toBe(MonitoringAlertType.STATE_DRIFT);
   });
 
   it('returns null when no drift', () => {
@@ -453,7 +459,7 @@ describe('checkOrphanedExecutions (monitoring)', () => {
     const state = makeState({ activeExecutions: [old1, old2] });
     const alerts = checkOrphanedExecutions(state, NOW);
     expect(alerts).toHaveLength(2);
-    expect(alerts[0].type).toBe('orphaned_execution');
+    expect(alerts[0].type).toBe(MonitoringAlertType.ORPHANED_EXECUTION);
   });
 
   it('returns empty array when no orphans', () => {
@@ -467,15 +473,15 @@ describe('checkMonitoring (full suite)', () => {
     const state = makeState({
       workflow: {
         ...buildIntentSignalDiscoveryState(NOW).workflow,
-        execution_status: 'running',
+        execution_status: ExecutionStatus.RUNNING,
         last_cycle_completed_at: null,
       },
       activeExecutions: [makeRunningExecution(EXECUTION_TIMEOUT_MS + 1_000)],
     });
     const alerts = checkMonitoring(state, NOW);
     const types = alerts.map((a) => a.type);
-    expect(types).toContain('missed_cadence');
-    expect(types).toContain('orphaned_execution');
+    expect(types).toContain(MonitoringAlertType.MISSED_CADENCE);
+    expect(types).toContain(MonitoringAlertType.ORPHANED_EXECUTION);
     // drift is masked by orphaned execution present, so state_drift may or may not fire
   });
 
@@ -507,8 +513,8 @@ describe('buildIntentSignalDiscoveryState', () => {
 
   it('sets execution_status=not_started (no false RUNNING idle)', () => {
     const { workflow, task } = buildIntentSignalDiscoveryState(NOW);
-    expect(workflow.execution_status).toBe('not_started');
-    expect(task.execution_status).toBe('not_started');
+    expect(workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
+    expect(task.execution_status).toBe(ExecutionStatus.NOT_STARTED);
   });
 
   it('sets next_recurrence_date to 1 hour in the future', () => {
@@ -518,7 +524,7 @@ describe('buildIntentSignalDiscoveryState', () => {
   });
 
   it('sets recurrence_pattern=hourly', () => {
-    expect(buildIntentSignalDiscoveryState(NOW).task.recurrence_pattern).toBe('hourly');
+    expect(buildIntentSignalDiscoveryState(NOW).task.recurrence_pattern).toBe(RecurrencePattern.HOURLY);
   });
 
   it('has the correct version', () => {

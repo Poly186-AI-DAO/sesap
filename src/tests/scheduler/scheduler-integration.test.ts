@@ -41,6 +41,12 @@ import {
   serializeSchedulerState,
   deserializeSchedulerState,
 } from '../../../server/scheduler/json-file-store';
+import {
+  ExecutionStatus,
+  MonitoringAlertType,
+  ReconciliationActionType,
+  RecurrencePattern,
+} from '../../../server/scheduler/types';
 import type { Execution, SchedulerState } from '../../../server/scheduler/types';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -54,13 +60,13 @@ function makeDriftedState(now: Date = CYCLE_START): SchedulerState {
   return {
     workflow: {
       ...base.workflow,
-      execution_status: 'running',  // false RUNNING – the incident symptom
+      execution_status: ExecutionStatus.RUNNING,  // false RUNNING – the incident symptom
       is_scheduled: false,
       updated_at: staleDate,
     },
     task: {
       ...base.task,
-      execution_status: 'not_started',
+      execution_status: ExecutionStatus.NOT_STARTED,
       next_recurrence_date: staleDate,  // stale: 2 hours in the past
       updated_at: staleDate,
     },
@@ -74,7 +80,7 @@ function makeOrphanedExecution(now: Date = CYCLE_START): Execution {
     id: 'orphan-exec-1',
     task_id: INTENT_SIGNAL_DISCOVERY_TASK_ID,
     workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_ID,
-    status: 'running',
+    status: ExecutionStatus.RUNNING,
     started_at: new Date(now.getTime() - EXECUTION_TIMEOUT_MS - 60_000),  // 1 min past threshold
     completed_at: null,
     error: null,
@@ -119,7 +125,7 @@ class InMemorySchedulerStore {
   /** Complete an execution and persist — mirrors the job-completion callback */
   completeExecution(
     executionId: string,
-    outcome: 'completed' | 'failed',
+    outcome: ExecutionStatus.COMPLETED | ExecutionStatus.FAILED,
     error: string | null = null,
     now: Date = new Date(),
   ) {
@@ -143,25 +149,25 @@ describe('Scheduler Integration: orphan cleanup unblocks valid runs', () => {
   it('reconcile() cancels the orphaned execution', () => {
     const { actions } = store.reconcile(CYCLE_START);
     const actionTypes = actions.map((a) => a.type);
-    expect(actionTypes).toContain('clear_orphaned');
+    expect(actionTypes).toContain(ReconciliationActionType.CLEAR_ORPHANED);
   });
 
   it('reconcile() resets false RUNNING workflow to not_started', () => {
     store.reconcile(CYCLE_START);
-    expect(store.read().workflow.execution_status).toBe('not_started');
+    expect(store.read().workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
   });
 
   it('reconcile() reports cancelled orphan in result (for persistence)', () => {
     const result = store.reconcile(CYCLE_START);
     const orphan = result.cancelledExecutions.find((e) => e.id === 'orphan-exec-1');
-    expect(orphan?.status).toBe('cancelled');
+    expect(orphan?.status).toBe(ExecutionStatus.CANCELLED);
     expect(orphan?.error).toMatch(/Orphaned/);
   });
 
   it('after reconcile(), activeExecutions contains only running-status entries (invariant)', () => {
     store.reconcile(CYCLE_START);
     const allStatuses = store.read().activeExecutions.map((e) => e.status);
-    expect(allStatuses.every((s) => s === 'running')).toBe(true);
+    expect(allStatuses.every((s) => s === ExecutionStatus.RUNNING)).toBe(true);
   });
 
   it('after reconcile(), concurrency check allows a new execution', () => {
@@ -190,7 +196,7 @@ describe('Scheduler Integration: duplicate enqueue prevention', () => {
 
     // Force-start a first execution
     store.startExecution(triggerTime);
-    expect(store.read().workflow.execution_status).toBe('running');
+    expect(store.read().workflow.execution_status).toBe(ExecutionStatus.RUNNING);
 
     // Attempting a second start must be blocked
     expect(() => store.startExecution(triggerTime)).toThrow(/UserConcurrencyLimitError/);
@@ -210,11 +216,11 @@ describe('Scheduler Integration: duplicate enqueue prevention', () => {
     const t2 = new Date(t1.getTime() + 30_000); // 30s later
 
     const exec = store.startExecution(t1);
-    store.completeExecution(exec.id, 'completed', null, t2);
+    store.completeExecution(exec.id, ExecutionStatus.COMPLETED, null, t2);
 
     // After completion, next_recurrence_date is +1h from t2
     const afterState = store.read();
-    expect(afterState.workflow.execution_status).toBe('not_started');
+    expect(afterState.workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
     expect(afterState.task.next_recurrence_date!.getTime()).toBeGreaterThan(t2.getTime());
     // activeExecutions must be empty (strictly running-only invariant — nothing running after complete)
     expect(afterState.activeExecutions).toHaveLength(0);
@@ -228,7 +234,7 @@ describe('Scheduler Integration: recurrence timestamps advance after each cycle'
     const completeTime = new Date(triggerTime.getTime() + 5 * 60_000); // 5 min of work
 
     const exec = store.startExecution(triggerTime);
-    store.completeExecution(exec.id, 'completed', null, completeTime);
+    store.completeExecution(exec.id, ExecutionStatus.COMPLETED, null, completeTime);
 
     const next = store.read().task.next_recurrence_date!;
     expect(next.getTime()).toBe(completeTime.getTime() + 3600_000);
@@ -241,7 +247,7 @@ describe('Scheduler Integration: recurrence timestamps advance after each cycle'
     const completeTime = new Date(triggerTime.getTime() + 5 * 60_000);
 
     const exec = store.startExecution(triggerTime);
-    store.completeExecution(exec.id, 'failed', 'scan error', completeTime);
+    store.completeExecution(exec.id, ExecutionStatus.FAILED, 'scan error', completeTime);
 
     // On failure the date should not have advanced past the failure time
     const next = store.read().task.next_recurrence_date;
@@ -258,7 +264,7 @@ describe('Scheduler Integration: recurrence timestamps advance after each cycle'
 
     const exec = store.startExecution(t1);
     const beforeComplete = store.read().task.updated_at;
-    store.completeExecution(exec.id, 'completed', null, t2);
+    store.completeExecution(exec.id, ExecutionStatus.COMPLETED, null, t2);
 
     expect(store.read().task.updated_at.getTime()).toBeGreaterThan(beforeComplete.getTime());
   });
@@ -272,7 +278,7 @@ describe('Scheduler Integration: full incident-recovery cycle (issue #10)', () =
         id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_ID,
         name: 'Intent Signal Discovery',
         version: '1.0',
-        execution_status: 'running',   // stuck RUNNING
+        execution_status: ExecutionStatus.RUNNING,   // stuck RUNNING
         is_scheduled: false,           // scheduler disabled
         last_cycle_completed_at: null,
         created_at: new Date('2026-03-24T00:00:00Z'),
@@ -282,9 +288,9 @@ describe('Scheduler Integration: full incident-recovery cycle (issue #10)', () =
         id: INTENT_SIGNAL_DISCOVERY_TASK_ID,
         workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_ID,
         name: 'Hourly Intent Signal Scan',
-        execution_status: 'not_started',  // not_started while workflow is RUNNING
+        execution_status: ExecutionStatus.NOT_STARTED,  // not_started while workflow is RUNNING
         is_recurring: true,
-        recurrence_pattern: 'hourly',
+        recurrence_pattern: RecurrencePattern.HOURLY,
         next_recurrence_date: new Date('2026-03-24T01:00:00Z'),  // 25+ hours in the past
         last_executed_at: null,
         created_at: new Date('2026-03-24T00:00:00Z'),
@@ -300,13 +306,13 @@ describe('Scheduler Integration: full incident-recovery cycle (issue #10)', () =
     const { actions } = store.reconcile(remediationTime);
     const actionTypes = actions.map((a) => a.type);
 
-    expect(actionTypes).toContain('reset_workflow');       // clears false RUNNING
-    expect(actionTypes).toContain('advance_recurrence');   // pushes next_recurrence_date forward
-    expect(actionTypes).toContain('enable_scheduler');     // sets is_scheduled=true
+    expect(actionTypes).toContain(ReconciliationActionType.RESET_WORKFLOW);       // clears false RUNNING
+    expect(actionTypes).toContain(ReconciliationActionType.ADVANCE_RECURRENCE);   // pushes next_recurrence_date forward
+    expect(actionTypes).toContain(ReconciliationActionType.ENABLE_SCHEDULER);     // sets is_scheduled=true
 
     // Step 2: verify healthy state
     const afterReconcile = store.read();
-    expect(afterReconcile.workflow.execution_status).toBe('not_started');
+    expect(afterReconcile.workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
     expect(afterReconcile.workflow.is_scheduled).toBe(true);
     expect(afterReconcile.task.next_recurrence_date!.getTime()).toBeGreaterThan(
       remediationTime.getTime(),
@@ -319,11 +325,11 @@ describe('Scheduler Integration: full incident-recovery cycle (issue #10)', () =
     // Step 4: run a cycle
     const exec = store.startExecution(atDueTime);
     const completeTime = new Date(atDueTime.getTime() + 5 * 60_000);
-    store.completeExecution(exec.id, 'completed', null, completeTime);
+    store.completeExecution(exec.id, ExecutionStatus.COMPLETED, null, completeTime);
 
     // Step 5: post-cycle state is clean
     const final = store.read();
-    expect(final.workflow.execution_status).toBe('not_started');
+    expect(final.workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
     expect(final.workflow.last_cycle_completed_at!.getTime()).toBe(completeTime.getTime());
     expect(final.task.next_recurrence_date!.getTime()).toBe(
       completeTime.getTime() + 3600_000,
@@ -343,8 +349,8 @@ describe('Scheduler Integration: idempotent reconcile on healthy state', () => {
     const stateAfterSecond = store.read();
 
     // Both passes produce only 'none' on a healthy state (no drift or stale dates)
-    expect(first.every((a) => a.type === 'none')).toBe(true);
-    expect(second.every((a) => a.type === 'none')).toBe(true);
+    expect(first.every((a) => a.type === ReconciliationActionType.NONE)).toBe(true);
+    expect(second.every((a) => a.type === ReconciliationActionType.NONE)).toBe(true);
 
     // State should be identical
     expect(stateAfterSecond.workflow.execution_status).toBe(
@@ -370,12 +376,12 @@ describe('Scheduler Integration: multi-cycle simulation (6-hour window)', () => 
       const exec = store.startExecution(clock);
       const completedAt = new Date(clock.getTime() + 3 * 60_000); // 3 min cycle
 
-      store.completeExecution(exec.id, 'completed', null, completedAt);
+      store.completeExecution(exec.id, ExecutionStatus.COMPLETED, null, completedAt);
       clock = completedAt;
 
       const state = store.read();
       // Workflow must not be stuck in RUNNING between cycles
-      expect(state.workflow.execution_status).toBe('not_started');
+      expect(state.workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
       // Recurrence must be in the future
       expect(state.task.next_recurrence_date!.getTime()).toBeGreaterThan(clock.getTime());
       // No monitoring alerts after each successful cycle
@@ -394,7 +400,7 @@ describe('Scheduler Integration: multi-cycle simulation (6-hour window)', () => 
       const dueTime = new Date(store.read().task.next_recurrence_date!.getTime() + 1);
       const exec = store.startExecution(dueTime);
       const completedAt = new Date(dueTime.getTime() + 2 * 60_000);
-      store.completeExecution(exec.id, 'completed', null, completedAt);
+      store.completeExecution(exec.id, ExecutionStatus.COMPLETED, null, completedAt);
       updatedAts.push(store.read().task.updated_at.getTime());
     }
 
@@ -433,13 +439,13 @@ describe('Scheduler Persistence: serialization round-trip survives simulated res
     const { execution, state: startedState } = startExecution(seedState, t1);
 
     const t2 = new Date(t1.getTime() + 5 * 60_000);
-    const completedState = completeExecution(startedState, execution.id, 'completed', null, t2);
+    const completedState = completeExecution(startedState, execution.id, ExecutionStatus.COMPLETED, null, t2);
 
     // Simulate process restart: serialize → JSON string → deserialize
     const reloaded = simulateRestart(completedState);
 
     // Cycle state must round-trip correctly
-    expect(reloaded.workflow.execution_status).toBe('not_started');
+    expect(reloaded.workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
 
     // last_cycle_completed_at must come back as a real Date, not a string
     expect(reloaded.workflow.last_cycle_completed_at).toBeInstanceOf(Date);
@@ -465,7 +471,7 @@ describe('Scheduler Persistence: serialization round-trip survives simulated res
     const reloaded = simulateRestart(startedState);
 
     // On restart the in-flight execution is still in activeExecutions (persisted)
-    expect(reloaded.workflow.execution_status).toBe('running');
+    expect(reloaded.workflow.execution_status).toBe(ExecutionStatus.RUNNING);
     expect(reloaded.activeExecutions).toHaveLength(1);
     // The active execution's started_at must be a Date, not a string
     expect(reloaded.activeExecutions[0].started_at).toBeInstanceOf(Date);
@@ -473,9 +479,9 @@ describe('Scheduler Persistence: serialization round-trip survives simulated res
     // reconcile() detects the orphan and cancels it
     const { actions, cancelledExecutions } = reconcile(reloaded, restartTime);
     const actionTypes = actions.map((a) => a.type);
-    expect(actionTypes).toContain('clear_orphaned');
+    expect(actionTypes).toContain(ReconciliationActionType.CLEAR_ORPHANED);
     expect(cancelledExecutions).toHaveLength(1);
-    expect(cancelledExecutions[0].status).toBe('cancelled');
+    expect(cancelledExecutions[0].status).toBe(ExecutionStatus.CANCELLED);
 
     // After reconcile, concurrency gate is open for the next valid execution
     const reconciledState = reconcile(reloaded, restartTime).state;
@@ -488,7 +494,7 @@ describe('Scheduler Persistence: serialization round-trip survives simulated res
     const driftedState = buildIntentSignalDiscoveryState(CYCLE_START);
     driftedState.task.next_recurrence_date = staleDate;
     driftedState.task.updated_at = staleDate;
-    driftedState.workflow.execution_status = 'running';
+    driftedState.workflow.execution_status = ExecutionStatus.RUNNING;
 
     // Persist and reload (simulates a pre-existing stuck state that survives restart)
     const reloaded = simulateRestart(driftedState);
@@ -500,7 +506,7 @@ describe('Scheduler Persistence: serialization round-trip survives simulated res
     // reconcile() must advance the stale date to the future
     const { actions } = reconcile(reloaded, CYCLE_START);
     const actionTypes = actions.map((a) => a.type);
-    expect(actionTypes).toContain('advance_recurrence');
+    expect(actionTypes).toContain(ReconciliationActionType.ADVANCE_RECURRENCE);
 
     const reconciledState = reconcile(reloaded, CYCLE_START).state;
     expect(reconciledState.task.next_recurrence_date!.getTime()).toBeGreaterThan(
@@ -515,7 +521,7 @@ describe('Scheduler Persistence: serialization round-trip survives simulated res
     const t1 = new Date(CYCLE_START.getTime() + 3600_000 + 1);
     const { execution, state: startedState } = startExecution(seedState, t1);
     const t2 = new Date(t1.getTime() + 3 * 60_000);
-    const completedState = completeExecution(startedState, execution.id, 'completed', null, t2);
+    const completedState = completeExecution(startedState, execution.id, ExecutionStatus.COMPLETED, null, t2);
 
     const reloaded = simulateRestart(completedState);
 
@@ -565,7 +571,7 @@ describe('Acceptance criteria: 6-hour observation window (issue #10)', () => {
     task_id: string;
     started_at: string;
     completed_at: string;
-    outcome: 'completed' | 'failed';
+    outcome: ExecutionStatus.COMPLETED | ExecutionStatus.FAILED;
     next_recurrence_date: string;
     task_updated_at: string;
     gap_from_previous_ms: number | null;
@@ -599,7 +605,7 @@ describe('Acceptance criteria: 6-hour observation window (issue #10)', () => {
       const completedAt = new Date(dueTime.getTime() + CYCLE_WORK_MS);
 
       // Complete execution
-      state = completeExecution(state, execution.id, 'completed', null, completedAt);
+      state = completeExecution(state, execution.id, ExecutionStatus.COMPLETED, null, completedAt);
 
       auditLog.push({
         cycle,
@@ -608,7 +614,7 @@ describe('Acceptance criteria: 6-hour observation window (issue #10)', () => {
         task_id: INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID,
         started_at: dueTime.toISOString(),
         completed_at: completedAt.toISOString(),
-        outcome: 'completed',
+        outcome: ExecutionStatus.COMPLETED,
         next_recurrence_date: state.task.next_recurrence_date!.toISOString(),
         task_updated_at: state.task.updated_at.toISOString(),
         gap_from_previous_ms: previousCompletedAt
@@ -627,10 +633,10 @@ describe('Acceptance criteria: 6-hour observation window (issue #10)', () => {
 
     // All 6 cycles completed successfully
     expect(auditLog).toHaveLength(6);
-    expect(auditLog.every((r) => r.outcome === 'completed')).toBe(true);
+    expect(auditLog.every((r) => r.outcome === ExecutionStatus.COMPLETED)).toBe(true);
 
     // At least 5 of them (criterion says >=5)
-    const successful = auditLog.filter((r) => r.outcome === 'completed');
+    const successful = auditLog.filter((r) => r.outcome === ExecutionStatus.COMPLETED);
     expect(successful.length).toBeGreaterThanOrEqual(5);
   });
 
@@ -683,20 +689,20 @@ describe('Acceptance criteria: 6-hour observation window (issue #10)', () => {
       state = reconciledState;
 
       // Before execution: workflow must NOT be in RUNNING state
-      expect(state.workflow.execution_status).toBe('not_started');
+      expect(state.workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
       expect(state.activeExecutions).toHaveLength(0);
 
       // During execution: workflow MUST be RUNNING with exactly 1 active execution
       const { execution, state: startedState } = startExecution(state, dueTime);
       state = startedState;
-      expect(state.workflow.execution_status).toBe('running');
+      expect(state.workflow.execution_status).toBe(ExecutionStatus.RUNNING);
       expect(state.activeExecutions).toHaveLength(1);
-      expect(state.activeExecutions[0].status).toBe('running');
+      expect(state.activeExecutions[0].status).toBe(ExecutionStatus.RUNNING);
 
       // After completion: workflow returns to not_started with 0 active executions
       const completedAt = new Date(dueTime.getTime() + CYCLE_WORK_MS);
-      state = completeExecution(state, execution.id, 'completed', null, completedAt);
-      expect(state.workflow.execution_status).toBe('not_started');
+      state = completeExecution(state, execution.id, ExecutionStatus.COMPLETED, null, completedAt);
+      expect(state.workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
       expect(state.activeExecutions).toHaveLength(0);
     }
   });
@@ -707,7 +713,7 @@ describe('Acceptance criteria: 6-hour observation window (issue #10)', () => {
     const t1 = new Date(SIM_START.getTime() + CADENCE_MS + TRIGGER_OFFSET_MS);
     const { execution, state: startedState } = startExecution(state, t1);
     state = startedState;
-    state = completeExecution(state, execution.id, 'completed', null, new Date(t1.getTime() + CYCLE_WORK_MS));
+    state = completeExecution(state, execution.id, ExecutionStatus.COMPLETED, null, new Date(t1.getTime() + CYCLE_WORK_MS));
 
     // Simulate MISSED_CADENCE_THRESHOLD_MS past next_recurrence_date with no execution
     const missedCadenceTime = new Date(
@@ -715,9 +721,9 @@ describe('Acceptance criteria: 6-hour observation window (issue #10)', () => {
     );
 
     const alerts = checkMonitoring(state, missedCadenceTime);
-    const missedCadenceAlert = alerts.find((a) => a.type === 'missed_cadence');
+    const missedCadenceAlert = alerts.find((a) => a.type === MonitoringAlertType.MISSED_CADENCE);
     expect(missedCadenceAlert).toBeDefined();
-    expect(missedCadenceAlert?.type).toBe('missed_cadence');
+    expect(missedCadenceAlert?.type).toBe(MonitoringAlertType.MISSED_CADENCE);
   });
 
   it('simulation timeline: produces full audit log matching expected format', () => {
@@ -747,7 +753,7 @@ describe('Acceptance criteria: 6-hour observation window (issue #10)', () => {
       expect(record.task_id).toBe(INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID);
       expect(new Date(record.started_at).toISOString()).toBe(record.started_at);
       expect(new Date(record.completed_at).toISOString()).toBe(record.completed_at);
-      expect(record.outcome).toBe('completed');
+      expect(record.outcome).toBe(ExecutionStatus.COMPLETED);
     }
   });
 });

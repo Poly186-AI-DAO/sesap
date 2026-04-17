@@ -29,6 +29,10 @@ import {
   INTENT_SIGNAL_DISCOVERY_WORKFLOW_ID,
 } from '../../../server/scheduler/intent-signal-discovery';
 import { EXECUTION_TIMEOUT_MS, computeNextRecurrenceDate } from '../../../server/scheduler/workflow-scheduler';
+import {
+  ExecutionStatus,
+  RecurrencePattern,
+} from '../../../server/scheduler/types';
 import type { SchedulerState, Execution } from '../../../server/scheduler/types';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -63,7 +67,7 @@ function makeOrphanedState(now: Date): SchedulerState {
     id: 'orphan-1',
     task_id: INTENT_SIGNAL_DISCOVERY_TASK_ID,
     workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_ID,
-    status: 'running',
+    status: ExecutionStatus.RUNNING,
     // orphan: started > EXECUTION_TIMEOUT_MS ago
     started_at: new Date(now.getTime() - EXECUTION_TIMEOUT_MS - 60_000),
     completed_at: null,
@@ -71,7 +75,7 @@ function makeOrphanedState(now: Date): SchedulerState {
   };
   return {
     ...base,
-    workflow: { ...base.workflow, execution_status: 'running' },
+    workflow: { ...base.workflow, execution_status: ExecutionStatus.RUNNING },
     activeExecutions: [orphan],
   };
 }
@@ -99,7 +103,7 @@ describe('startSchedulerLoop: recurrence gate', () => {
     await loop._tick(now);
 
     expect(runTask).not.toHaveBeenCalled();
-    expect(store.get().workflow.execution_status).toBe('not_started');
+    expect(store.get().workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
   });
 
   it('triggers runTask when next_recurrence_date === now', async () => {
@@ -126,7 +130,7 @@ describe('startSchedulerLoop: execution lifecycle', () => {
     await loop._tick(now);
 
     const state = store.get();
-    expect(state.workflow.execution_status).toBe('not_started');
+    expect(state.workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
     // next_recurrence_date rolled forward to the future
     expect(state.task.next_recurrence_date!.getTime()).toBeGreaterThan(now.getTime());
     // activeExecutions invariant: only running entries (empty after completion)
@@ -143,7 +147,7 @@ describe('startSchedulerLoop: execution lifecycle', () => {
     await loop._tick(now);
 
     const state = store.get();
-    expect(state.workflow.execution_status).toBe('failed');
+    expect(state.workflow.execution_status).toBe(ExecutionStatus.FAILED);
     // activeExecutions invariant: no running entries after failure
     expect(state.activeExecutions).toHaveLength(0);
     // next_recurrence_date must NOT have advanced on failure
@@ -175,7 +179,7 @@ describe('startSchedulerLoop: reconcile auto-heal', () => {
 
     // Orphan cleared, new execution completed, state is healthy
     expect(runTask).toHaveBeenCalledTimes(1);
-    expect(store.get().workflow.execution_status).toBe('not_started');
+    expect(store.get().workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
     expect(store.get().activeExecutions).toHaveLength(0);
   });
 });
@@ -193,13 +197,13 @@ describe('startSchedulerLoop: second tick after failure', () => {
 
     // First tick — task fails
     await loop._tick(now);
-    expect(store.get().workflow.execution_status).toBe('failed');
+    expect(store.get().workflow.execution_status).toBe(ExecutionStatus.FAILED);
 
     // Restore triggerable state for the second tick
     const now2 = new Date();
     store.set({
       ...store.get(),
-      workflow: { ...store.get().workflow, execution_status: 'not_started' },
+      workflow: { ...store.get().workflow, execution_status: ExecutionStatus.NOT_STARTED },
       task: {
         ...store.get().task,
         next_recurrence_date: new Date(now2.getTime()),
@@ -209,7 +213,7 @@ describe('startSchedulerLoop: second tick after failure', () => {
     // Second tick — task succeeds
     await loop._tick(now2);
     expect(runTask).toHaveBeenCalledTimes(2);
-    expect(store.get().workflow.execution_status).toBe('not_started');
+    expect(store.get().workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
   });
 });
 
@@ -249,10 +253,10 @@ describe('startSchedulerLoop: multi-cycle simulation (5 hourly cycles)', () => {
 
       await loop._tick(now);
 
-      expect(store.get().workflow.execution_status).toBe('not_started');
+      expect(store.get().workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
       expect(store.get().activeExecutions).toHaveLength(0);
       // next_recurrence_date rolled to exactly now + 1h
-      const expectedNext = computeNextRecurrenceDate('hourly', now);
+      const expectedNext = computeNextRecurrenceDate(RecurrencePattern.HOURLY, now);
       expect(store.get().task.next_recurrence_date!.getTime()).toBe(expectedNext.getTime());
     }
 

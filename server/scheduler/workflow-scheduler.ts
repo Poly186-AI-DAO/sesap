@@ -22,14 +22,13 @@ import { v4 as uuidv4 } from 'uuid';
 import type {
   ConcurrencyCheck,
   Execution,
-  ExecutionStatus,
   ReconciliationAction,
   ReconciliationResult,
-  RecurrencePattern,
   SchedulerState,
   Task,
   Workflow,
 } from './types';
+import { ExecutionStatus, ReconciliationActionType, RecurrencePattern } from './types';
 
 /** How long an execution may stay in `running` before it is considered orphaned */
 export const EXECUTION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
@@ -49,16 +48,16 @@ export function computeNextRecurrenceDate(
 ): Date {
   const next = new Date(from.getTime());
   switch (pattern) {
-    case 'hourly':
+    case RecurrencePattern.HOURLY:
       next.setUTCHours(next.getUTCHours() + 1);
       break;
-    case 'daily':
+    case RecurrencePattern.DAILY:
       next.setUTCDate(next.getUTCDate() + 1);
       break;
-    case 'weekly':
+    case RecurrencePattern.WEEKLY:
       next.setUTCDate(next.getUTCDate() + 7);
       break;
-    case 'monthly':
+    case RecurrencePattern.MONTHLY:
       next.setUTCMonth(next.getUTCMonth() + 1);
       break;
   }
@@ -74,8 +73,8 @@ export function computeNextRecurrenceDate(
  */
 export function hasStateDrift(state: SchedulerState): boolean {
   return (
-    state.workflow.execution_status === 'running' &&
-    state.activeExecutions.filter((e) => e.status === 'running').length === 0
+    state.workflow.execution_status === ExecutionStatus.RUNNING &&
+    state.activeExecutions.filter((e) => e.status === ExecutionStatus.RUNNING).length === 0
   );
 }
 
@@ -93,7 +92,7 @@ export function findOrphanedExecutions(
 ): Execution[] {
   return state.activeExecutions.filter(
     (exec) =>
-      exec.status === 'running' &&
+      exec.status === ExecutionStatus.RUNNING &&
       now.getTime() - exec.started_at.getTime() > EXECUTION_TIMEOUT_MS,
   );
 }
@@ -127,7 +126,7 @@ export function checkConcurrency(
 ): ConcurrencyCheck {
   const nonOrphaned = state.activeExecutions.filter(
     (e) =>
-      e.status === 'running' &&
+      e.status === ExecutionStatus.RUNNING &&
       now.getTime() - e.started_at.getTime() <= EXECUTION_TIMEOUT_MS,
   );
   if (nonOrphaned.length >= MAX_CONCURRENT_EXECUTIONS) {
@@ -171,7 +170,7 @@ export function reconcile(
     const orphanedIds = new Set(orphaned.map((e) => e.id));
     const newlyCancelled: Execution[] = orphaned.map((e) => ({
       ...e,
-      status: 'cancelled' as ExecutionStatus,
+      status: ExecutionStatus.CANCELLED,
       completed_at: now,
       error: `Orphaned: execution exceeded ${EXECUTION_TIMEOUT_MS / 60_000} min timeout`,
     }));
@@ -182,7 +181,7 @@ export function reconcile(
     cancelledExecutions.push(...newlyCancelled);
 
     actions.push({
-      type: 'clear_orphaned',
+      type: ReconciliationActionType.CLEAR_ORPHANED,
       description:
         `Cancelled ${orphaned.length} orphaned execution(s): ` +
         orphaned.map((e) => e.id).join(', '),
@@ -191,21 +190,21 @@ export function reconcile(
 
   // Active executions after orphan removal
   const stillActiveExecutions = activeExecutions.filter(
-    (e) => e.status === 'running',
+    (e) => e.status === ExecutionStatus.RUNNING,
   );
 
   // ── 2. Reset workflow state drift ─────────────────────────────────────────
   if (
-    workflow.execution_status === 'running' &&
+    workflow.execution_status === ExecutionStatus.RUNNING &&
     stillActiveExecutions.length === 0
   ) {
     workflow = {
       ...workflow,
-      execution_status: 'not_started',
+      execution_status: ExecutionStatus.NOT_STARTED,
       updated_at: now,
     };
     actions.push({
-      type: 'reset_workflow',
+      type: ReconciliationActionType.RESET_WORKFLOW,
       description:
         'Workflow was RUNNING with no active executions (state drift). ' +
         'Reset execution_status to not_started.',
@@ -221,7 +220,7 @@ export function reconcile(
       updated_at: now,
     };
     actions.push({
-      type: 'advance_recurrence',
+      type: ReconciliationActionType.ADVANCE_RECURRENCE,
       description:
         `Stale next_recurrence_date advanced to ${next.toISOString()} ` +
         `(+1 ${task.recurrence_pattern}).`,
@@ -232,7 +231,7 @@ export function reconcile(
   if (task.is_recurring && !workflow.is_scheduled) {
     workflow = { ...workflow, is_scheduled: true, updated_at: now };
     actions.push({
-      type: 'enable_scheduler',
+      type: ReconciliationActionType.ENABLE_SCHEDULER,
       description:
         'Task is recurring but workflow.is_scheduled was false. ' +
         'Set is_scheduled=true to enforce single scheduler source of truth.',
@@ -240,7 +239,7 @@ export function reconcile(
   }
 
   if (actions.length === 0) {
-    actions.push({ type: 'none', description: 'State is consistent – no action required.' });
+    actions.push({ type: ReconciliationActionType.NONE, description: 'State is consistent – no action required.' });
   }
 
   return {
@@ -272,7 +271,7 @@ export function startExecution(
     id: uuidv4(),
     task_id: state.task.id,
     workflow_id: state.workflow.id,
-    status: 'running',
+    status: ExecutionStatus.RUNNING,
     started_at: now,
     completed_at: null,
     error: null,
@@ -280,14 +279,14 @@ export function startExecution(
 
   const updatedWorkflow: Workflow = {
     ...state.workflow,
-    execution_status: 'running',
+    execution_status: ExecutionStatus.RUNNING,
     is_scheduled: true,
     updated_at: now,
   };
 
   const updatedTask: Task = {
     ...state.task,
-    execution_status: 'running',
+    execution_status: ExecutionStatus.RUNNING,
     last_executed_at: now,
     updated_at: now,
   };
@@ -311,7 +310,7 @@ export function startExecution(
 export function completeExecution(
   state: SchedulerState,
   executionId: string,
-  outcome: 'completed' | 'failed',
+  outcome: ExecutionStatus.COMPLETED | ExecutionStatus.FAILED,
   error: string | null = null,
   now: Date = new Date(),
 ): SchedulerState {
@@ -325,26 +324,26 @@ export function completeExecution(
   );
 
   const newWorkflowStatus: ExecutionStatus =
-    remainingActive.filter((e) => e.status === 'running').length > 0
-      ? 'running'
-      : outcome === 'completed'
-        ? 'not_started' // ready for next cycle
-        : 'failed';
+    remainingActive.filter((e) => e.status === ExecutionStatus.RUNNING).length > 0
+      ? ExecutionStatus.RUNNING
+      : outcome === ExecutionStatus.COMPLETED
+        ? ExecutionStatus.NOT_STARTED // ready for next cycle
+        : ExecutionStatus.FAILED;
 
   const updatedWorkflow: Workflow = {
     ...state.workflow,
     execution_status: newWorkflowStatus,
-    last_cycle_completed_at: outcome === 'completed' ? now : state.workflow.last_cycle_completed_at,
+    last_cycle_completed_at: outcome === ExecutionStatus.COMPLETED ? now : state.workflow.last_cycle_completed_at,
     updated_at: now,
   };
 
   // Advance recurrence date on success
   let updatedTask: Task = {
     ...state.task,
-    execution_status: newWorkflowStatus === 'running' ? 'running' : 'not_started',
+    execution_status: newWorkflowStatus === ExecutionStatus.RUNNING ? ExecutionStatus.RUNNING : ExecutionStatus.NOT_STARTED,
     updated_at: now,
   };
-  if (outcome === 'completed' && updatedTask.is_recurring && updatedTask.recurrence_pattern) {
+  if (outcome === ExecutionStatus.COMPLETED && updatedTask.is_recurring && updatedTask.recurrence_pattern) {
     updatedTask = {
       ...updatedTask,
       next_recurrence_date: computeNextRecurrenceDate(updatedTask.recurrence_pattern, now),
@@ -376,7 +375,7 @@ export function shouldTrigger(
 
   const nonOrphaned = state.activeExecutions.filter(
     (e) =>
-      e.status === 'running' &&
+      e.status === ExecutionStatus.RUNNING &&
       now.getTime() - e.started_at.getTime() <= EXECUTION_TIMEOUT_MS,
   );
   return nonOrphaned.length === 0;

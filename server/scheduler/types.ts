@@ -13,14 +13,20 @@
  *     be auto-advanced to `now + cadence`.
  */
 
-export type ExecutionStatus =
-  | 'not_started'
-  | 'running'
-  | 'completed'
-  | 'failed'
-  | 'cancelled';
+export enum ExecutionStatus {
+  NOT_STARTED = 'not_started',
+  RUNNING = 'running',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  CANCELLED = 'cancelled',
+}
 
-export type RecurrencePattern = 'hourly' | 'daily' | 'weekly' | 'monthly';
+export enum RecurrencePattern {
+  HOURLY = 'hourly',
+  DAILY = 'daily',
+  WEEKLY = 'weekly',
+  MONTHLY = 'monthly',
+}
 
 /** Top-level orchestration unit */
 export interface Workflow {
@@ -72,22 +78,23 @@ export interface SchedulerState {
   activeExecutions: Execution[];
 }
 
+/** Machine-readable identifiers for reconciliation actions */
+export enum ReconciliationActionType {
+  /** Nothing to do — state is already consistent */
+  NONE = 'none',
+  /** Workflow was RUNNING with no active execution; reset to not_started */
+  RESET_WORKFLOW = 'reset_workflow',
+  /** Timed-out (orphaned) executions were cancelled */
+  CLEAR_ORPHANED = 'clear_orphaned',
+  /** Stale next_recurrence_date pushed forward to the future */
+  ADVANCE_RECURRENCE = 'advance_recurrence',
+  /** is_scheduled was false; set to true to enforce single scheduler source of truth */
+  ENABLE_SCHEDULER = 'enable_scheduler',
+}
+
 /** Describes a single reconciliation action that was (or should be) taken */
 export interface ReconciliationAction {
-  /**
-   * Machine-readable action identifier:
-   *   - `none`               – nothing to do
-   *   - `reset_workflow`     – workflow RUNNING with no active execution → reset to not_started
-   *   - `clear_orphaned`     – timed-out executions cleared
-   *   - `advance_recurrence` – stale next_recurrence_date pushed to future
-   *   - `enable_scheduler`   – is_scheduled was false, now set to true
-   */
-  type:
-    | 'none'
-    | 'reset_workflow'
-    | 'clear_orphaned'
-    | 'advance_recurrence'
-    | 'enable_scheduler';
+  type: ReconciliationActionType;
   description: string;
 }
 
@@ -105,9 +112,19 @@ export interface ConcurrencyCheck {
   reason?: string;
 }
 
+/** Alert categories emitted by the monitoring checker */
+export enum MonitoringAlertType {
+  /** Last successful cycle was more than the threshold ago */
+  MISSED_CADENCE = 'missed_cadence',
+  /** Workflow claims RUNNING but has no active execution */
+  STATE_DRIFT = 'state_drift',
+  /** An execution has been running longer than the orphan timeout */
+  ORPHANED_EXECUTION = 'orphaned_execution',
+}
+
 /** A monitoring alert emitted when the scheduler detects a problem */
 export interface MonitoringAlert {
-  type: 'missed_cadence' | 'state_drift' | 'orphaned_execution';
+  type: MonitoringAlertType;
   workflow_id: string;
   task_id?: string;
   execution_id?: string;

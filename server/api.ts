@@ -6,7 +6,7 @@
  *   - Scheduler status, reconciliation, and manual trigger
  */
 
-import express, { Request, Response } from 'express';
+import express, { Request, Response as ExpressResponse } from 'express';
 import cors from 'cors';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -30,6 +30,7 @@ import { JsonFileSchedulerStore } from './scheduler/json-file-store';
 import { startSchedulerLoop } from './scheduler/scheduler-loop';
 import type { SchedulerLoopHandle } from './scheduler/scheduler-loop';
 import type { SchedulerState } from './scheduler/types';
+import { ExecutionStatus } from './scheduler/types';
 
 // Load environment variables
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -73,7 +74,7 @@ function stripNullValues(obj: any): any {
  * Body: { transcript: string }
  * Returns: { model: string, template: string, data: string, html: string }
  */
-app.post('/api/generate/contract', async (req: Request, res: Response) => {
+app.post('/api/generate/contract', async (req: Request, res: ExpressResponse) => {
   const { transcript } = req.body;
 
   if (!transcript || typeof transcript !== 'string') {
@@ -127,7 +128,7 @@ app.post('/api/generate/contract', async (req: Request, res: Response) => {
 });
 
 // Health check
-app.get('/api/health', (_req: Request, res: Response) => {
+app.get('/api/health', (_req: Request, res: ExpressResponse) => {
   res.json({ status: 'ok' });
 });
 
@@ -234,9 +235,9 @@ async function runIntentSignalScan(executionId: string): Promise<void> {
       `URL: ${scanUrl}`,
   );
 
-  let response: Response;
+  let fetchResponse: globalThis.Response;
   try {
-    response = await fetch(scanUrl, {
+    fetchResponse = await fetch(scanUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -244,7 +245,7 @@ async function runIntentSignalScan(executionId: string): Promise<void> {
         task_id: INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID,
         execution_id: executionId,
       }),
-    }) as unknown as Response;
+    });
   } catch (networkErr) {
     const errorMsg = networkErr instanceof Error ? networkErr.message : String(networkErr);
     appendAuditRecord({
@@ -259,8 +260,8 @@ async function runIntentSignalScan(executionId: string): Promise<void> {
     throw networkErr;
   }
 
-  if (!response.ok) {
-    const errorMsg = `Scan service returned HTTP ${response.status}: ${response.statusText}`;
+  if (!fetchResponse.ok) {
+    const errorMsg = `Scan service returned HTTP ${fetchResponse.status}: ${fetchResponse.statusText}`;
     appendAuditRecord({
       execution_id: executionId,
       workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID,
@@ -314,7 +315,7 @@ export let schedulerLoop: SchedulerLoopHandle = startSchedulerLoop(
  *   - task.updated_at (should advance roughly hourly)
  *   - alerts array (empty = healthy)
  */
-app.get('/api/scheduler/status', (_req: Request, res: Response) => {
+app.get('/api/scheduler/status', (_req: Request, res: ExpressResponse) => {
   const state = getSchedulerState();
   const alerts = checkMonitoring(state);
   console.log(`[Scheduler] Status requested. Alerts: ${alerts.length}`);
@@ -339,7 +340,7 @@ app.get('/api/scheduler/status', (_req: Request, res: Response) => {
  *   - Advances next_recurrence_date when stuck in the past
  *   - Sets is_scheduled=true as the single source of truth
  */
-app.post('/api/scheduler/reconcile', (_req: Request, res: Response) => {
+app.post('/api/scheduler/reconcile', (_req: Request, res: ExpressResponse) => {
   const result = reconcile(getSchedulerState());
   setSchedulerState(result.state);
 
@@ -371,7 +372,7 @@ app.post('/api/scheduler/reconcile', (_req: Request, res: Response) => {
  * Body: { force?: boolean }
  *   force=true  – trigger even if next_recurrence_date is in the future
  */
-app.post('/api/scheduler/trigger', (req: Request, res: Response) => {
+app.post('/api/scheduler/trigger', (req: Request, res: ExpressResponse) => {
   const force = req.body?.force === true;
   const now = new Date();
 
@@ -406,7 +407,7 @@ app.post('/api/scheduler/trigger', (req: Request, res: Response) => {
   runIntentSignalScan(executionId)
     .then(() => {
       const completedAt = new Date();
-      const completedState = completeExecution(getSchedulerState(), executionId, 'completed', null, completedAt);
+      const completedState = completeExecution(getSchedulerState(), executionId, ExecutionStatus.COMPLETED, null, completedAt);
       setSchedulerState(completedState);
       console.log(
         `[Scheduler] Execution ${executionId} completed. ` +
@@ -416,7 +417,7 @@ app.post('/api/scheduler/trigger', (req: Request, res: Response) => {
     .catch((taskErr: unknown) => {
       const errMsg = taskErr instanceof Error ? taskErr.message : String(taskErr);
       const failedAt = new Date();
-      setSchedulerState(completeExecution(getSchedulerState(), executionId, 'failed', errMsg, failedAt));
+      setSchedulerState(completeExecution(getSchedulerState(), executionId, ExecutionStatus.FAILED, errMsg, failedAt));
       console.error(`[Scheduler] Execution ${executionId} failed: ${errMsg}`);
     });
 
@@ -438,9 +439,10 @@ app.post('/api/scheduler/trigger', (req: Request, res: Response) => {
  *
  * Body: { outcome: 'completed' | 'failed', error?: string }
  */
-app.post('/api/scheduler/complete/:executionId', (req: Request, res: Response) => {
+app.post('/api/scheduler/complete/:executionId', (req: Request, res: ExpressResponse) => {
   const { executionId } = req.params;
-  const outcome: 'completed' | 'failed' = req.body?.outcome === 'failed' ? 'failed' : 'completed';
+  const outcome: ExecutionStatus.COMPLETED | ExecutionStatus.FAILED =
+    req.body?.outcome === 'failed' ? ExecutionStatus.FAILED : ExecutionStatus.COMPLETED;
   const error: string | null = req.body?.error ?? null;
   const now = new Date();
 

@@ -13,7 +13,9 @@
  */
 
 import { findOrphanedExecutions, EXECUTION_TIMEOUT_MS, hasStateDrift } from './workflow-scheduler';
-import type { MonitoringAlert, SchedulerState } from './types';
+import type { SchedulerState } from './types';
+import { MonitoringAlertType } from './types';
+import type { MonitoringAlert } from './types';
 
 /** Default cadence miss threshold – alert if no successful cycle in this window */
 export const MISSED_CADENCE_THRESHOLD_MS = 90 * 60 * 1000; // 90 minutes
@@ -62,7 +64,7 @@ export function checkMissedCadence(
 
   if (!workflow.last_cycle_completed_at) {
     return {
-      type: 'missed_cadence',
+      type: MonitoringAlertType.MISSED_CADENCE,
       workflow_id: workflow.id,
       message:
         `Workflow "${workflow.name}" has never completed a cycle. ` +
@@ -76,7 +78,7 @@ export function checkMissedCadence(
     const ageMin = Math.round(ageMs / 60_000);
     const thresholdMin = Math.round(thresholdMs / 60_000);
     return {
-      type: 'missed_cadence',
+      type: MonitoringAlertType.MISSED_CADENCE,
       workflow_id: workflow.id,
       message:
         `Workflow "${workflow.name}" last completed ${ageMin} min ago ` +
@@ -100,7 +102,7 @@ export function checkStateDrift(
   if (!hasStateDrift(state)) return null;
 
   return {
-    type: 'state_drift',
+    type: MonitoringAlertType.STATE_DRIFT,
     workflow_id: state.workflow.id,
     task_id: state.task.id,
     message:
@@ -123,7 +125,7 @@ export function checkOrphanedExecutions(
       (now.getTime() - exec.started_at.getTime()) / 60_000,
     );
     return {
-      type: 'orphaned_execution' as const,
+      type: MonitoringAlertType.ORPHANED_EXECUTION,
       workflow_id: exec.workflow_id,
       task_id: exec.task_id,
       execution_id: exec.id,

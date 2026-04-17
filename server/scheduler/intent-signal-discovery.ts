@@ -18,6 +18,7 @@
  */
 
 import type { SchedulerState, Task, Workflow } from './types';
+import { ExecutionStatus, RecurrencePattern } from './types';
 import { computeNextRecurrenceDate } from './workflow-scheduler';
 
 // ─── Well-known identifiers ───────────────────────────────────────────────────
@@ -67,7 +68,7 @@ export function buildIntentSignalDiscoveryState(
     id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_ID,
     name: 'Intent Signal Discovery',
     version: INTENT_SIGNAL_DISCOVERY_WORKFLOW_VERSION,
-    execution_status: 'not_started',
+    execution_status: ExecutionStatus.NOT_STARTED,
     // Single scheduler source of truth: workflow-level scheduler drives cadence
     is_scheduled: true,
     last_cycle_completed_at: null,
@@ -79,11 +80,11 @@ export function buildIntentSignalDiscoveryState(
     id: INTENT_SIGNAL_DISCOVERY_TASK_ID,
     workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_ID,
     name: 'Hourly Intent Signal Scan',
-    execution_status: 'not_started',
+    execution_status: ExecutionStatus.NOT_STARTED,
     is_recurring: true,
-    recurrence_pattern: 'hourly',
+    recurrence_pattern: RecurrencePattern.HOURLY,
     // Next fire is 1 hour from now so the first cycle does not trigger immediately
-    next_recurrence_date: computeNextRecurrenceDate('hourly', now),
+    next_recurrence_date: computeNextRecurrenceDate(RecurrencePattern.HOURLY, now),
     last_executed_at: null,
     created_at: now,
     updated_at: now,
