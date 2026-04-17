@@ -235,9 +235,9 @@ async function runIntentSignalScan(executionId: string): Promise<void> {
       `URL: ${scanUrl}`,
   );
 
-  let fetchResponse: globalThis.Response;
+  let scanResponse: globalThis.Response;
   try {
-    fetchResponse = await fetch(scanUrl, {
+    scanResponse = await fetch(scanUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -260,8 +260,8 @@ async function runIntentSignalScan(executionId: string): Promise<void> {
     throw networkErr;
   }
 
-  if (!fetchResponse.ok) {
-    const errorMsg = `Scan service returned HTTP ${fetchResponse.status}: ${fetchResponse.statusText}`;
+  if (!scanResponse.ok) {
+    const errorMsg = `Scan service returned HTTP ${scanResponse.status}: ${scanResponse.statusText}`;
     appendAuditRecord({
       execution_id: executionId,
       workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID,
@@ -441,8 +441,14 @@ app.post('/api/scheduler/trigger', (req: Request, res: ExpressResponse) => {
  */
 app.post('/api/scheduler/complete/:executionId', (req: Request, res: ExpressResponse) => {
   const { executionId } = req.params;
+  const rawOutcome = req.body?.outcome;
+  if (rawOutcome !== 'completed' && rawOutcome !== 'failed') {
+    return res.status(400).json({
+      error: `Invalid outcome "${rawOutcome}". Must be "completed" or "failed".`,
+    });
+  }
   const outcome: ExecutionStatus.COMPLETED | ExecutionStatus.FAILED =
-    req.body?.outcome === 'failed' ? ExecutionStatus.FAILED : ExecutionStatus.COMPLETED;
+    rawOutcome === 'failed' ? ExecutionStatus.FAILED : ExecutionStatus.COMPLETED;
   const error: string | null = req.body?.error ?? null;
   const now = new Date();
 
