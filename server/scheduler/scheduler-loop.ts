@@ -165,7 +165,11 @@ export function startSchedulerLoop(
       }
 
       // ── 5. Complete execution and roll next_recurrence_date forward ───────
-      setState(completeExecution(getState(), executionId, outcome, taskError, now));
+      // Capture completion time NOW (after the task ran), not at tick start.
+      // This ensures last_cycle_completed_at, updated_at, and next_recurrence_date
+      // reflect the actual completion instant, not the stale tick-start timestamp.
+      const completedAt = new Date();
+      setState(completeExecution(getState(), executionId, outcome, taskError, completedAt));
 
       if (outcome === ExecutionStatus.COMPLETED) {
         console.log(

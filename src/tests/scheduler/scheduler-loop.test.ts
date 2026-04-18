@@ -240,27 +240,35 @@ describe('startSchedulerLoop: stop()', () => {
 
 describe('startSchedulerLoop: multi-cycle simulation (5 hourly cycles)', () => {
   it('5 consecutive hourly cycles all complete successfully', async () => {
-    let now = new Date();
-    const store = makeStateStore(makeDueState(now));
-    const runTask = vi.fn().mockResolvedValue(undefined) as MockedFunction<TaskRunner>;
+    vi.useFakeTimers();
+    try {
+      let now = new Date();
+      const store = makeStateStore(makeDueState(now));
+      const runTask = vi.fn().mockResolvedValue(undefined) as MockedFunction<TaskRunner>;
 
-    const loop = startSchedulerLoop(store.get, store.set, runTask, { checkIntervalMs: 60_000, immediateFirstTick: false });
-    loop.stop();
+      const loop = startSchedulerLoop(store.get, store.set, runTask, { checkIntervalMs: 60_000, immediateFirstTick: false });
+      loop.stop();
 
-    for (let cycle = 1; cycle <= 5; cycle++) {
-      // Advance 'now' to when the next execution is due
-      now = new Date(store.get().task.next_recurrence_date!.getTime());
+      for (let cycle = 1; cycle <= 5; cycle++) {
+        // Advance 'now' to when the next execution is due
+        now = new Date(store.get().task.next_recurrence_date!.getTime());
 
-      await loop._tick(now);
+        // Pin the system clock to 'now' so completedAt = new Date() inside tick
+        // returns the same controlled value as tick-start, keeping assertions deterministic.
+        vi.setSystemTime(now);
+        await loop._tick(now);
 
-      expect(store.get().workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
-      expect(store.get().activeExecutions).toHaveLength(0);
-      // next_recurrence_date rolled to exactly now + 1h
-      const expectedNext = computeNextRecurrenceDate(RecurrencePattern.HOURLY, now);
-      expect(store.get().task.next_recurrence_date!.getTime()).toBe(expectedNext.getTime());
+        expect(store.get().workflow.execution_status).toBe(ExecutionStatus.NOT_STARTED);
+        expect(store.get().activeExecutions).toHaveLength(0);
+        // next_recurrence_date rolled to exactly completedAt + 1h (== now + 1h in this test)
+        const expectedNext = computeNextRecurrenceDate(RecurrencePattern.HOURLY, now);
+        expect(store.get().task.next_recurrence_date!.getTime()).toBe(expectedNext.getTime());
+      }
+
+      expect(runTask).toHaveBeenCalledTimes(5);
+      expect(store.get().workflow.last_cycle_completed_at).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
     }
-
-    expect(runTask).toHaveBeenCalledTimes(5);
-    expect(store.get().workflow.last_cycle_completed_at).not.toBeNull();
   });
 });
