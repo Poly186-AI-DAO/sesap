@@ -311,7 +311,7 @@ export function completeExecution(
   state: SchedulerState,
   executionId: string,
   outcome: ExecutionStatus.COMPLETED | ExecutionStatus.FAILED,
-  error: string | null = null,
+  _error: string | null = null,
   now: Date = new Date(),
 ): SchedulerState {
   const execution = state.activeExecutions.find((e) => e.id === executionId);

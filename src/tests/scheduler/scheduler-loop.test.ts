@@ -22,7 +22,7 @@ import {
   type MockedFunction,
 } from 'vitest';
 import { startSchedulerLoop } from '../../../server/scheduler/scheduler-loop';
-import type { TaskRunner, SchedulerLoopHandle } from '../../../server/scheduler/scheduler-loop';
+import type { TaskRunner } from '../../../server/scheduler/scheduler-loop';
 import {
   buildIntentSignalDiscoveryState,
   INTENT_SIGNAL_DISCOVERY_TASK_ID,
