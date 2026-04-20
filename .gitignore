@@ -48,3 +48,6 @@ next-env.d.ts
 
 # history
 .history
+
+# scheduler runtime state and audit log (written by the server process at runtime)
+/data/

@@ -1,14 +1,37 @@
 /**
- * Express API server for contract generation
- * 
- * Provides endpoints for the frontend to generate contracts from transcripts
+ * Express API server for contract generation and scheduler management
+ *
+ * Provides endpoints for:
+ *   - Contract generation from transcripts
+ *   - Scheduler status, reconciliation, and manual trigger
  */
 
-import express, { Request, Response } from 'express';
+import express, { Request, Response as ExpressResponse } from 'express';
 import cors from 'cors';
+import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 import { transcriptToContract } from './scripts/transcript-to-contract';
+import {
+  buildIntentSignalDiscoveryState,
+  INTENT_SIGNAL_DISCOVERY_WORKFLOW_ID,
+  INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID,
+  INTENT_SIGNAL_DISCOVERY_TASK_ID,
+  INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID,
+} from './scheduler/intent-signal-discovery';
+import {
+  reconcile,
+  startExecution,
+  completeExecution,
+  shouldTrigger,
+  ExecutionNotFoundError,
+} from './scheduler/workflow-scheduler';
+import { checkMonitoring } from './scheduler/monitoring';
+import { JsonFileSchedulerStore } from './scheduler/json-file-store';
+import { startSchedulerLoop } from './scheduler/scheduler-loop';
+import type { SchedulerLoopHandle } from './scheduler/scheduler-loop';
+import type { SchedulerState } from './scheduler/types';
+import { ExecutionStatus } from './scheduler/types';
 
 // Load environment variables
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -52,7 +75,7 @@ function stripNullValues(obj: any): any {
  * Body: { transcript: string }
  * Returns: { model: string, template: string, data: string, html: string }
  */
-app.post('/api/generate/contract', async (req: Request, res: Response) => {
+app.post('/api/generate/contract', async (req: Request, res: ExpressResponse) => {
   const { transcript } = req.body;
 
   if (!transcript || typeof transcript !== 'string') {
@@ -106,8 +129,377 @@ app.post('/api/generate/contract', async (req: Request, res: Response) => {
 });
 
 // Health check
-app.get('/api/health', (_req: Request, res: Response) => {
+app.get('/api/health', (_req: Request, res: ExpressResponse) => {
   res.json({ status: 'ok' });
+});
+
+// ─── Scheduler state store & loop ────────────────────────────────────────────
+
+/**
+ * File-backed scheduler state store.
+ *
+ * State is persisted to `SCHEDULER_STATE_FILE` (default: `data/scheduler-state.json`
+ * relative to the project root) so it survives process restarts. On the first
+ * run the file is seeded from `buildIntentSignalDiscoveryState()`; subsequent
+ * restarts load the last-known state including active executions and the
+ * `next_recurrence_date`, which means the loop picks up exactly where it left
+ * off without losing cadence.
+ *
+ * Set `SCHEDULER_STATE_FILE` in the environment to point at a different path
+ * (e.g. a mounted volume in a container deployment).
+ *
+ * **Production persistence wiring plan**: `JsonFileSchedulerStore` exposes the
+ * same `read()` / `write()` interface a PostgreSQL adapter will expose. Swapping
+ * to PostgreSQL requires replacing only the ~10 lines below with a
+ * `PostgresSchedulerStore` instance — no changes to the scheduler loop or API
+ * endpoints. See `docs/SCHEDULER_PERSISTENCE_ADAPTER.md` for the full field
+ * mapping (Poly Operations workflow/task/execution rows ↔ `SchedulerState`) and
+ * the step-by-step migration plan.
+ */
+const SCHEDULER_STATE_FILE =
+  process.env.SCHEDULER_STATE_FILE ??
+  path.resolve(__dirname, '..', 'data', 'scheduler-state.json');
+
+const schedulerStore = new JsonFileSchedulerStore(
+  SCHEDULER_STATE_FILE,
+  buildIntentSignalDiscoveryState(),
+);
+
+const getSchedulerState = (): SchedulerState => schedulerStore.read();
+const setSchedulerState = (s: SchedulerState): void => schedulerStore.write(s);
+
+// ─── Execution audit log ──────────────────────────────────────────────────────
+
+/**
+ * Path to the append-only JSONL audit log that records every scan attempt.
+ *
+ * Each line is a JSON object:
+ *   { execution_id, workflow_id, task_id, started_at, completed_at, outcome, error? }
+ *
+ * This log provides durable, observable proof that the hourly cycle is running.
+ * Set `SCHEDULER_AUDIT_LOG` in the environment to redirect to a different path.
+ */
+const SCHEDULER_AUDIT_LOG =
+  process.env.SCHEDULER_AUDIT_LOG ??
+  path.resolve(__dirname, '..', 'data', 'scheduler-audit.jsonl');
+
+function appendAuditRecord(record: Record<string, unknown>): void {
+  try {
+    fs.mkdirSync(path.dirname(SCHEDULER_AUDIT_LOG), { recursive: true });
+    fs.appendFileSync(SCHEDULER_AUDIT_LOG, JSON.stringify(record) + '\n', 'utf8');
+  } catch (err) {
+    console.error('[IntentSignalScan] Failed to write audit record:', err);
+  }
+}
+
+// ─── Task runner ──────────────────────────────────────────────────────────────
+
+/**
+ * Perform one Intent Signal Discovery scan.
+ *
+ * Dispatches to the scan service via HTTP POST to `INTENT_SIGNAL_SCAN_URL`.
+ * Set this environment variable to the URL of the intent-signal scan endpoint
+ * (e.g. `http://scan-service:8080/api/intent-signal/run`).
+ *
+ * The request body is:
+ *   { workflow_id, task_id, execution_id }
+ *
+ * A 2xx response is treated as success.  Any non-2xx response or network error
+ * is treated as failure — the error is logged, written to the audit log, and
+ * re-thrown so the scheduler loop marks the execution as failed.
+ *
+ * If `INTENT_SIGNAL_SCAN_URL` is not set the function throws immediately so
+ * executions fail honestly rather than writing a false-positive "completed"
+ * audit record.
+ *
+ * The scheduler loop calls `completeExecution()` automatically on both success
+ * and failure; do NOT call it from inside this function.
+ *
+ * @param executionId  The running Execution ID — included in all logs and the
+ *                     request body so the downstream service can correlate.
+ */
+async function runIntentSignalScan(executionId: string): Promise<void> {
+  const scanUrl = process.env.INTENT_SIGNAL_SCAN_URL;
+  if (!scanUrl) {
+    throw new Error(
+      'INTENT_SIGNAL_SCAN_URL is not configured. ' +
+        'Set this environment variable to the URL of the intent-signal scan endpoint ' +
+        'to enable real scan execution.',
+    );
+  }
+
+  const startedAt = new Date();
+  console.log(
+    `[IntentSignalScan] Execution ${executionId} started at ${startedAt.toISOString()}. ` +
+      `Workflow: ${INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID}, ` +
+      `Task: ${INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID}, ` +
+      `URL: ${scanUrl}`,
+  );
+
+  let scanResponse: globalThis.Response;
+  try {
+    scanResponse = await fetch(scanUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID,
+        task_id: INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID,
+        execution_id: executionId,
+      }),
+    });
+  } catch (networkErr) {
+    const errorMsg = networkErr instanceof Error ? networkErr.message : String(networkErr);
+    appendAuditRecord({
+      execution_id: executionId,
+      workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID,
+      task_id: INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID,
+      started_at: startedAt.toISOString(),
+      completed_at: new Date().toISOString(),
+      outcome: 'failed',
+      error: `Network error: ${errorMsg}`,
+    });
+    throw networkErr;
+  }
+
+  if (!scanResponse.ok) {
+    const errorMsg = `Scan service returned HTTP ${scanResponse.status}: ${scanResponse.statusText}`;
+    appendAuditRecord({
+      execution_id: executionId,
+      workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID,
+      task_id: INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID,
+      started_at: startedAt.toISOString(),
+      completed_at: new Date().toISOString(),
+      outcome: 'failed',
+      error: errorMsg,
+    });
+    throw new Error(errorMsg);
+  }
+
+  const completedAt = new Date();
+  appendAuditRecord({
+    execution_id: executionId,
+    workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID,
+    task_id: INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID,
+    started_at: startedAt.toISOString(),
+    completed_at: completedAt.toISOString(),
+    outcome: 'completed',
+  });
+
+  console.log(
+    `[IntentSignalScan] Execution ${executionId} completed at ${completedAt.toISOString()}`,
+  );
+}
+
+// ─── Autonomous scheduler loop ────────────────────────────────────────────────
+
+/**
+ * Fires every 60 seconds, reconciles state, and triggers a new execution
+ * cycle whenever next_recurrence_date <= now.
+ *
+ * Stop handle exported so tests and graceful-shutdown handlers can call
+ * schedulerLoop.stop().
+ */
+export let schedulerLoop: SchedulerLoopHandle = startSchedulerLoop(
+  getSchedulerState,
+  setSchedulerState,
+  runIntentSignalScan,
+  { checkIntervalMs: 60_000 },
+);
+
+/**
+ * GET /api/scheduler/status
+ *
+ * Returns the current scheduler state plus any active monitoring alerts.
+ * Use this to verify:
+ *   - workflow.execution_status
+ *   - task.next_recurrence_date
+ *   - task.updated_at (should advance roughly hourly)
+ *   - alerts array (empty = healthy)
+ */
+app.get('/api/scheduler/status', (_req: Request, res: ExpressResponse) => {
+  const state = getSchedulerState();
+  const alerts = checkMonitoring(state);
+  console.log(`[Scheduler] Status requested. Alerts: ${alerts.length}`);
+  res.json({
+    workflow: state.workflow,
+    task: state.task,
+    activeExecutions: state.activeExecutions,
+    alerts,
+  });
+});
+
+/**
+ * POST /api/scheduler/reconcile
+ *
+ * Detect and fix state drift, orphaned executions, stale recurrence dates,
+ * and missing is_scheduled flag.  Safe to call repeatedly; idempotent when
+ * state is already consistent.
+ *
+ * This is the primary remediation action for the issue:
+ *   - Clears orphaned active executions (removes UserConcurrencyLimitError blocks)
+ *   - Resets workflow from false RUNNING to not_started
+ *   - Advances next_recurrence_date when stuck in the past
+ *   - Sets is_scheduled=true as the single source of truth
+ */
+app.post('/api/scheduler/reconcile', (_req: Request, res: ExpressResponse) => {
+  const result = reconcile(getSchedulerState());
+  setSchedulerState(result.state);
+
+  console.log(
+    `[Scheduler] Reconciliation complete. Actions: ${result.actions.map((a) => a.type).join(', ')}`,
+  );
+
+  const state = getSchedulerState();
+  res.json({
+    actions: result.actions,
+    workflow: state.workflow,
+    task: state.task,
+    activeExecutions: state.activeExecutions,
+    cancelledExecutions: result.cancelledExecutions,
+  });
+});
+
+/**
+ * POST /api/scheduler/trigger
+ *
+ * Manually trigger the next execution cycle (e.g. for testing or catch-up
+ * after a missed cadence).  Returns 409 if an execution is already running or
+ * if it is not yet time for the next cycle and `force` is not set.
+ *
+ * The endpoint starts the execution, runs `runIntentSignalScan()` asynchronously,
+ * and calls `completeExecution()` on both success and failure — so the cycle
+ * always closes and `next_recurrence_date` always rolls forward on success.
+ *
+ * Body: { force?: boolean }
+ *   force=true  – trigger even if next_recurrence_date is in the future
+ */
+app.post('/api/scheduler/trigger', (req: Request, res: ExpressResponse) => {
+  const force = req.body?.force === true;
+  const now = new Date();
+
+  if (!force && !shouldTrigger(getSchedulerState(), now)) {
+    const next = getSchedulerState().task.next_recurrence_date;
+    return res.status(409).json({
+      error: 'Not yet time for next cycle',
+      next_recurrence_date: next?.toISOString() ?? null,
+      hint: 'Pass { force: true } to override the recurrence gate.',
+    });
+  }
+
+  let executionId: string;
+  try {
+    const { execution, state } = startExecution(getSchedulerState(), now);
+    setSchedulerState(state);
+    executionId = execution.id;
+
+    console.log(
+      `[Scheduler] Execution ${executionId} started for task ${INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID}`,
+    );
+  } catch (err) {
+    // Includes UserConcurrencyLimitError-equivalent messages
+    console.error('[Scheduler] Failed to start execution:', err);
+    return res.status(409).json({
+      error: err instanceof Error ? err.message : 'Failed to start execution',
+      hint: 'Call POST /api/scheduler/reconcile to clear orphaned executions first.',
+    });
+  }
+
+  // Run the scan asynchronously and wire completeExecution() on both paths.
+  // Wrap each close-out in a try/catch so that a concurrent call to
+  // POST /api/scheduler/complete/:executionId (external callback) closing the
+  // execution first does not cause an unhandled rejection.
+  runIntentSignalScan(executionId)
+    .then(() => {
+      const completedAt = new Date();
+      try {
+        const completedState = completeExecution(getSchedulerState(), executionId, ExecutionStatus.COMPLETED, null, completedAt);
+        setSchedulerState(completedState);
+        console.log(
+          `[Scheduler] Execution ${executionId} completed. ` +
+            `Next recurrence: ${completedState.task.next_recurrence_date?.toISOString() ?? 'unknown'}`,
+        );
+      } catch (closeErr) {
+        if (closeErr instanceof ExecutionNotFoundError) {
+          // External /complete callback already closed this execution — this is expected in async mode.
+          console.warn(`[Scheduler] Execution ${executionId} was already closed when trigger success callback ran (idempotent).`);
+        } else {
+          console.error(`[Scheduler] Unexpected error closing execution ${executionId} on success:`, closeErr);
+        }
+      }
+    })
+    .catch((taskErr: unknown) => {
+      const errMsg = taskErr instanceof Error ? taskErr.message : String(taskErr);
+      const failedAt = new Date();
+      try {
+        setSchedulerState(completeExecution(getSchedulerState(), executionId, ExecutionStatus.FAILED, errMsg, failedAt));
+      } catch (closeErr) {
+        if (closeErr instanceof ExecutionNotFoundError) {
+          console.warn(`[Scheduler] Execution ${executionId} was already closed when trigger failure callback ran (idempotent).`);
+        } else {
+          console.error(`[Scheduler] Unexpected error closing execution ${executionId} on failure:`, closeErr);
+        }
+      }
+      console.error(`[Scheduler] Execution ${executionId} failed: ${errMsg}`);
+    });
+
+  res.status(202).json({
+    execution_id: executionId,
+    workflow_id: INTENT_SIGNAL_DISCOVERY_WORKFLOW_FULL_ID,
+    task_id: INTENT_SIGNAL_DISCOVERY_TASK_FULL_ID,
+    started_at: now.toISOString(),
+    message: 'Execution started. Monitor via GET /api/scheduler/status.',
+  });
+});
+
+/**
+ * POST /api/scheduler/complete/:executionId
+ *
+ * External completion callback — allows the real scan job to close the
+ * Execution record when it finishes (in environments where the task runner
+ * is a separate process or service).
+ *
+ * Body: { outcome: 'completed' | 'failed', error?: string }
+ */
+app.post('/api/scheduler/complete/:executionId', (req: Request, res: ExpressResponse) => {
+  const { executionId } = req.params;
+  const rawOutcome = req.body?.outcome;
+  if (rawOutcome !== 'completed' && rawOutcome !== 'failed') {
+    return res.status(400).json({
+      error: `Invalid outcome "${rawOutcome}". Must be "completed" or "failed".`,
+    });
+  }
+  const outcome: ExecutionStatus.COMPLETED | ExecutionStatus.FAILED =
+    rawOutcome === 'failed' ? ExecutionStatus.FAILED : ExecutionStatus.COMPLETED;
+  const error: string | null = req.body?.error ?? null;
+  const now = new Date();
+
+  try {
+    const updatedState = completeExecution(getSchedulerState(), executionId, outcome, error, now);
+    setSchedulerState(updatedState);
+    console.log(`[Scheduler] Execution ${executionId} closed via callback. Outcome: ${outcome}`);
+    res.json({
+      execution_id: executionId,
+      outcome,
+      workflow: updatedState.workflow,
+      task: updatedState.task,
+    });
+  } catch (err) {
+    // Idempotent: if the execution is no longer active (already closed by the
+    // trigger path or a prior callback), return 200 rather than 404 so callers
+    // do not need to handle a race-condition error.
+    if (err instanceof ExecutionNotFoundError) {
+      console.log(`[Scheduler] Complete callback for ${executionId}: already closed (idempotent).`);
+      return res.json({
+        execution_id: executionId,
+        outcome,
+        already_completed: true,
+        message: 'Execution was already completed or not found in active executions.',
+      });
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[Scheduler] Complete callback failed for ${executionId}: ${msg}`);
+    res.status(500).json({ error: msg });
+  }
 });
 
 app.listen(PORT, () => {
