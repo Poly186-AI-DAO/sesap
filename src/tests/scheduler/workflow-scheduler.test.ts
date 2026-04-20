@@ -406,10 +406,32 @@ describe('shouldTrigger', () => {
 // ─── Monitoring ───────────────────────────────────────────────────────────────
 
 describe('checkMissedCadence', () => {
-  it('alerts when last_cycle_completed_at is null', () => {
+  it('returns null when last_cycle_completed_at is null and first run is not yet due (clean startup)', () => {
+    // makeState() sets next_recurrence_date = NOW + 1h (future) — no alert expected
     const alert = checkMissedCadence(makeState(), NOW);
+    expect(alert).toBeNull();
+  });
+
+  it('alerts when last_cycle_completed_at is null and first run is overdue beyond threshold', () => {
+    const state = makeState({
+      task: {
+        ...buildIntentSignalDiscoveryState(NOW).task,
+        next_recurrence_date: new Date(NOW.getTime() - MISSED_CADENCE_THRESHOLD_MS - 1_000),
+      },
+    });
+    const alert = checkMissedCadence(state, NOW);
     expect(alert).not.toBeNull();
     expect(alert?.type).toBe(MonitoringAlertType.MISSED_CADENCE);
+  });
+
+  it('returns null when last_cycle_completed_at is null and first run is overdue but within threshold', () => {
+    const state = makeState({
+      task: {
+        ...buildIntentSignalDiscoveryState(NOW).task,
+        next_recurrence_date: new Date(NOW.getTime() - 30 * 60_000), // 30 min overdue, within 90-min threshold
+      },
+    });
+    expect(checkMissedCadence(state, NOW)).toBeNull();
   });
 
   it('alerts when last cycle was over threshold ago', () => {
@@ -475,6 +497,11 @@ describe('checkMonitoring (full suite)', () => {
         ...buildIntentSignalDiscoveryState(NOW).workflow,
         execution_status: ExecutionStatus.RUNNING,
         last_cycle_completed_at: null,
+      },
+      // Make the first run overdue beyond the threshold so missed_cadence fires
+      task: {
+        ...buildIntentSignalDiscoveryState(NOW).task,
+        next_recurrence_date: new Date(NOW.getTime() - MISSED_CADENCE_THRESHOLD_MS - 1_000),
       },
       activeExecutions: [makeRunningExecution(EXECUTION_TIMEOUT_MS + 1_000)],
     });

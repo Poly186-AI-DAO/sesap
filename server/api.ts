@@ -403,21 +403,33 @@ app.post('/api/scheduler/trigger', (req: Request, res: ExpressResponse) => {
     });
   }
 
-  // Run the scan asynchronously and wire completeExecution() on both paths
+  // Run the scan asynchronously and wire completeExecution() on both paths.
+  // Wrap each close-out in a try/catch so that a concurrent call to
+  // POST /api/scheduler/complete/:executionId (external callback) closing the
+  // execution first does not cause an unhandled rejection.
   runIntentSignalScan(executionId)
     .then(() => {
       const completedAt = new Date();
-      const completedState = completeExecution(getSchedulerState(), executionId, ExecutionStatus.COMPLETED, null, completedAt);
-      setSchedulerState(completedState);
-      console.log(
-        `[Scheduler] Execution ${executionId} completed. ` +
-          `Next recurrence: ${completedState.task.next_recurrence_date?.toISOString() ?? 'unknown'}`,
-      );
+      try {
+        const completedState = completeExecution(getSchedulerState(), executionId, ExecutionStatus.COMPLETED, null, completedAt);
+        setSchedulerState(completedState);
+        console.log(
+          `[Scheduler] Execution ${executionId} completed. ` +
+            `Next recurrence: ${completedState.task.next_recurrence_date?.toISOString() ?? 'unknown'}`,
+        );
+      } catch (closeErr) {
+        // External /complete callback already closed this execution — log and continue.
+        console.warn(`[Scheduler] Execution ${executionId} already closed before trigger callback: ${closeErr instanceof Error ? closeErr.message : String(closeErr)}`);
+      }
     })
     .catch((taskErr: unknown) => {
       const errMsg = taskErr instanceof Error ? taskErr.message : String(taskErr);
       const failedAt = new Date();
-      setSchedulerState(completeExecution(getSchedulerState(), executionId, ExecutionStatus.FAILED, errMsg, failedAt));
+      try {
+        setSchedulerState(completeExecution(getSchedulerState(), executionId, ExecutionStatus.FAILED, errMsg, failedAt));
+      } catch (closeErr) {
+        console.warn(`[Scheduler] Execution ${executionId} already closed before trigger failure callback: ${closeErr instanceof Error ? closeErr.message : String(closeErr)}`);
+      }
       console.error(`[Scheduler] Execution ${executionId} failed: ${errMsg}`);
     });
 
@@ -464,6 +476,18 @@ app.post('/api/scheduler/complete/:executionId', (req: Request, res: ExpressResp
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    // Idempotent: if the execution is no longer active (already closed by the
+    // trigger path or a prior callback), return 200 rather than 404 so callers
+    // do not need to handle a race-condition error.
+    if (msg.includes('not found in active executions')) {
+      console.log(`[Scheduler] Complete callback for ${executionId}: already closed (idempotent).`);
+      return res.json({
+        execution_id: executionId,
+        outcome,
+        already_completed: true,
+        message: 'Execution was already completed or not found in active executions.',
+      });
+    }
     console.error(`[Scheduler] Complete callback failed for ${executionId}: ${msg}`);
     res.status(404).json({ error: msg });
   }

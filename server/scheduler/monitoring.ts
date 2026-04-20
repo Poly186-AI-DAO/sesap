@@ -52,22 +52,38 @@ export function checkMonitoring(
  * Alert when the workflow has not completed a cycle within `thresholdMs`.
  *
  * Fires when:
- *   - last_cycle_completed_at is null (never ran), OR
+ *   - last_cycle_completed_at is null AND first run is overdue by > thresholdMs, OR
  *   - now - last_cycle_completed_at > thresholdMs
+ *
+ * When last_cycle_completed_at is null but next_recurrence_date is still in
+ * the future (or within tolerance), no alert is emitted — this prevents a
+ * false-positive on clean startup before the first cycle is due.
  */
 export function checkMissedCadence(
   state: SchedulerState,
   now: Date = new Date(),
   thresholdMs: number = MISSED_CADENCE_THRESHOLD_MS,
 ): MonitoringAlert | null {
-  const { workflow } = state;
+  const { workflow, task } = state;
 
   if (!workflow.last_cycle_completed_at) {
+    // Never completed a cycle yet.  Only alert when the first scheduled run
+    // is already overdue by more than thresholdMs so that a clean startup
+    // (next_recurrence_date still in the future) does not produce a false alert.
+    const dueDate = task.next_recurrence_date;
+    if (!dueDate || dueDate.getTime() > now.getTime()) {
+      return null; // first run not yet due
+    }
+    const overdueMs = now.getTime() - dueDate.getTime();
+    if (overdueMs <= thresholdMs) {
+      return null; // within tolerance
+    }
     return {
       type: MonitoringAlertType.MISSED_CADENCE,
       workflow_id: workflow.id,
       message:
-        `Workflow "${workflow.name}" has never completed a cycle. ` +
+        `Workflow "${workflow.name}" has never completed a cycle and first run was due ` +
+        `${Math.round(overdueMs / 60_000)} min ago (threshold: ${Math.round(thresholdMs / 60_000)} min). ` +
         'Verify the scheduler is running and the task can execute.',
       detected_at: now,
     };
