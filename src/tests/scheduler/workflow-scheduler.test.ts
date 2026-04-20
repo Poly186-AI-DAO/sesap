@@ -11,6 +11,7 @@ import {
   shouldTrigger,
   EXECUTION_TIMEOUT_MS,
   MAX_CONCURRENT_EXECUTIONS,
+  ExecutionNotFoundError,
 } from '../../../server/scheduler/workflow-scheduler';
 import {
   checkMissedCadence,
@@ -344,6 +345,11 @@ describe('completeExecution', () => {
     const { state: started } = startExecution(makeState(), NOW);
     expect(() => completeExecution(started, 'nonexistent-id', ExecutionStatus.COMPLETED)).toThrow();
   });
+
+  it('throws ExecutionNotFoundError (typed) when execution id is not found', () => {
+    const { state: started } = startExecution(makeState(), NOW);
+    expect(() => completeExecution(started, 'nonexistent-id', ExecutionStatus.COMPLETED)).toThrow(ExecutionNotFoundError);
+  });
 });
 
 // ─── shouldTrigger ────────────────────────────────────────────────────────────
@@ -406,6 +412,16 @@ describe('shouldTrigger', () => {
 // ─── Monitoring ───────────────────────────────────────────────────────────────
 
 describe('checkMissedCadence', () => {
+  it('returns null when last_cycle_completed_at is null and next_recurrence_date is null', () => {
+    const state = makeState({
+      task: {
+        ...buildIntentSignalDiscoveryState(NOW).task,
+        next_recurrence_date: null,
+      },
+    });
+    expect(checkMissedCadence(state, NOW)).toBeNull();
+  });
+
   it('returns null when last_cycle_completed_at is null and first run is not yet due (clean startup)', () => {
     // makeState() sets next_recurrence_date = NOW + 1h (future) — no alert expected
     const alert = checkMissedCadence(makeState(), NOW);

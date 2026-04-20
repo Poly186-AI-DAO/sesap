@@ -36,6 +36,19 @@ export const EXECUTION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 /** Maximum number of simultaneous active executions per task */
 export const MAX_CONCURRENT_EXECUTIONS = 1;
 
+/**
+ * Thrown by `completeExecution` when the requested execution ID is not
+ * present in `state.activeExecutions`.  Callers can use `instanceof
+ * ExecutionNotFoundError` instead of fragile string-matching to distinguish
+ * "already completed / idempotent" from unexpected errors.
+ */
+export class ExecutionNotFoundError extends Error {
+  constructor(public readonly executionId: string) {
+    super(`Execution ${executionId} not found in active executions`);
+    this.name = 'ExecutionNotFoundError';
+  }
+}
+
 // ─── Date helpers ────────────────────────────────────────────────────────────
 
 /**
@@ -316,7 +329,7 @@ export function completeExecution(
 ): SchedulerState {
   const execution = state.activeExecutions.find((e) => e.id === executionId);
   if (!execution) {
-    throw new Error(`Execution ${executionId} not found in active executions`);
+    throw new ExecutionNotFoundError(executionId);
   }
 
   const remainingActive = state.activeExecutions.filter(
